@@ -4,7 +4,9 @@
       <div class="modal-container glass-panel animate-fade-in">
         <div class="modal-header">
           <h2>{{ editId ? 'Edit Member' : 'Add New Member' }}</h2>
-          <button class="btn-close" @click="closeModal">✕</button>
+          <button class="btn-close" @click="closeModal" type="button" aria-label="Close">
+            <X :size="20" />
+          </button>
         </div>
         
         <div class="modal-body">
@@ -22,6 +24,18 @@
               <div class="form-group">
                 <label class="form-label">NIC</label>
                 <input type="text" v-model="form.nic" class="form-control" required placeholder="123456789V">
+              </div>
+            </div>
+
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label">Membership Number</label>
+                <input type="text" v-model="form.membership_number" class="form-control" placeholder="M-001">
+              </div>
+              
+              <div class="form-group">
+                <label class="form-label">Membership Date</label>
+                <input type="date" v-model="form.membership_date" class="form-control">
               </div>
             </div>
             
@@ -56,7 +70,7 @@
             <div v-for="(dep, index) in form.dependents" :key="index" class="dependent-card">
               <div class="dependent-header">
                 <h4>Dependent #{{ index + 1 }}</h4>
-                <button type="button" @click="removeDependent(index)" class="btn-remove">✕</button>
+                <button type="button" @click="removeDependent(index)" class="btn-remove">x</button>
               </div>
               <div class="form-grid">
                 <div class="form-group">
@@ -89,6 +103,7 @@
 
 <script setup>
 import { ref, reactive, defineProps, defineEmits, watch } from 'vue'
+import { X } from 'lucide-vue-next'
 
 const props = defineProps({
   show: Boolean,
@@ -103,6 +118,8 @@ const errorMsg = ref('')
 
 const form = reactive({
   name: '',
+  membership_number: '',
+  membership_date: '',
   nic: '',
   address: '',
   city: '',
@@ -112,6 +129,8 @@ const form = reactive({
 
 const resetForm = () => {
   form.name = ''
+  form.membership_number = ''
+  form.membership_date = ''
   form.nic = ''
   form.address = ''
   form.city = ''
@@ -172,6 +191,8 @@ const submitForm = async () => {
   const payload = {
     id: props.editId,
     name: form.name,
+    membership_number: form.membership_number,
+    membership_date: form.membership_date,
     nic: form.nic,
     address: form.address,
     city: form.city,
@@ -210,8 +231,9 @@ const submitForm = async () => {
 .modal-container { width: 100%; max-width: 800px; max-height: 90vh; overflow-y: auto; padding: 0; display: flex; flex-direction: column; }
 .modal-header { padding: 1.5rem 2rem; border-bottom: 1px solid rgba(0, 0, 0, 0.05); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; background: inherit; z-index: 10; }
 .modal-header h2 { margin: 0; font-size: 1.5rem; color: var(--primary-color); }
-.btn-close { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-muted); }
+.btn-close { background: none; border: none; cursor: pointer; color: var(--text-muted); display: inline-flex; align-items: center; justify-content: center; }
 .btn-close:hover { color: var(--error); }
+.btn-close:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: 6px; }
 .modal-body { padding: 2rem; }
 .section-title { color: var(--primary-dark); font-size: 1.25rem; border-bottom: 2px solid var(--primary-light); display: inline-block; padding-bottom: 0.25rem; margin-bottom: 1.5rem; }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
@@ -230,3 +252,4 @@ const submitForm = async () => {
 .text-center { text-align: center; }
 .py-4 { padding-top: 1.5rem; padding-bottom: 1.5rem; }
 </style>
+

@@ -10,6 +10,8 @@ $inputJSON = file_get_contents('php://input');
 $input = json_decode($inputJSON, TRUE);
 
 if (isset($input['name'], $input['nic'], $input['address'], $input['city'], $input['contact_number'])) {
+    $membership_number = isset($input['membership_number']) ? $input['membership_number'] : null;
+    $membership_date = isset($input['membership_date']) && !empty($input['membership_date']) ? $input['membership_date'] : null;
     try {
         $pdo->beginTransaction();
         
@@ -17,15 +19,15 @@ if (isset($input['name'], $input['nic'], $input['address'], $input['city'], $inp
 
         if ($isEdit) {
             $memberId = $input['id'];
-            $stmt = $pdo->prepare("UPDATE members SET name = ?, nic = ?, address = ?, city = ?, contact_number = ? WHERE id = ?");
-            $stmt->execute([$input['name'], $input['nic'], $input['address'], $input['city'], $input['contact_number'], $memberId]);
+            $stmt = $pdo->prepare("UPDATE members SET name = ?, membership_number = ?, membership_date = ?, nic = ?, address = ?, city = ?, contact_number = ? WHERE id = ?");
+            $stmt->execute([$input['name'], $membership_number, $membership_date, $input['nic'], $input['address'], $input['city'], $input['contact_number'], $memberId]);
             
             // Delete existing dependents
             $delDepStmt = $pdo->prepare("DELETE FROM dependents WHERE member_id = ?");
             $delDepStmt->execute([$memberId]);
         } else {
-            $stmt = $pdo->prepare("INSERT INTO members (name, nic, address, city, contact_number) VALUES (?, ?, ?, ?, ?)");
-            $stmt->execute([$input['name'], $input['nic'], $input['address'], $input['city'], $input['contact_number']]);
+            $stmt = $pdo->prepare("INSERT INTO members (name, membership_number, membership_date, nic, address, city, contact_number) VALUES (?, ?, ?, ?, ?, ?, ?)");
+            $stmt->execute([$input['name'], $membership_number, $membership_date, $input['nic'], $input['address'], $input['city'], $input['contact_number']]);
             $memberId = $pdo->lastInsertId();
         }
 

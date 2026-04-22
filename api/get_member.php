@@ -8,7 +8,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 if (isset($_GET['id'])) {
     try {
-        $stmt = $pdo->prepare("SELECT id, name, nic, city, contact_number, address FROM members WHERE id = ? AND is_deleted = 0");
+        $stmt = $pdo->prepare("SELECT id, name, membership_number, membership_date, nic, city, contact_number, address FROM members WHERE id = ? AND is_deleted = 0");
         $stmt->execute([$_GET['id']]);
         $member = $stmt->fetch(PDO::FETCH_ASSOC);
 

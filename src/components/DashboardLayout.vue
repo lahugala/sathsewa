@@ -15,14 +15,44 @@
       <aside class="dashboard-sidebar glass-panel">
         <nav class="sidebar-nav">
           <router-link to="/dashboard" class="nav-link" active-class="active">
-            <span class="nav-icon">📊</span>
+            <span class="nav-icon icon-dashboard">
+              <LayoutDashboard :size="17" />
+            </span>
             Dashboard
           </router-link>
           <router-link to="/members" class="nav-link" active-class="active">
-            <span class="nav-icon">👥</span>
+            <span class="nav-icon icon-members">
+              <Users :size="17" />
+            </span>
             Members
           </router-link>
-          <!-- Additional links can go here -->
+
+          <button
+            class="nav-link nav-link-toggle"
+            :class="{ active: isReportsRoute }"
+            type="button"
+            @click="toggleReports"
+          >
+            <span class="nav-icon icon-reports">
+              <FileBarChart2 :size="17" />
+            </span>
+            Reports
+            <span class="caret">
+              <ChevronDown v-if="reportsOpen" :size="16" />
+              <ChevronRight v-else :size="16" />
+            </span>
+          </button>
+
+          <div v-show="reportsOpen" class="sub-nav">
+            <router-link to="/reports/members" class="sub-nav-link" active-class="active-sub">
+              <UserSquare2 :size="14" />
+              Member Report
+            </router-link>
+            <router-link to="/reports/financial" class="sub-nav-link" active-class="active-sub">
+              <Wallet2 :size="14" />
+              Financial Report
+            </router-link>
+          </div>
         </nav>
       </aside>
 
@@ -37,9 +67,37 @@
 </template>
 
 <script setup>
-import { useRouter } from 'vue-router'
+import { computed, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import {
+  LayoutDashboard,
+  Users,
+  FileBarChart2,
+  ChevronDown,
+  ChevronRight,
+  UserSquare2,
+  Wallet2
+} from 'lucide-vue-next'
 
 const router = useRouter()
+const route = useRoute()
+const reportsOpen = ref(false)
+
+const isReportsRoute = computed(() => route.path.startsWith('/reports'))
+
+watch(
+  () => route.path,
+  (path) => {
+    if (path.startsWith('/reports')) {
+      reportsOpen.value = true
+    }
+  },
+  { immediate: true }
+)
+
+const toggleReports = () => {
+  reportsOpen.value = !reportsOpen.value
+}
 
 const logout = () => {
   // Add logout logic here (e.g. clearing tokens)
@@ -82,12 +140,12 @@ const logout = () => {
 }
 
 .dashboard-sidebar {
-  width: 250px;
+  width: clamp(220px, 18vw, 280px);
   border-radius: 0;
   border-top: none;
   border-bottom: none;
   border-left: none;
-  padding: 2rem 1rem;
+  padding: clamp(1rem, 2vw, 2rem) 1rem;
   display: flex;
   flex-direction: column;
 }
@@ -109,8 +167,15 @@ const logout = () => {
   font-weight: 500;
 }
 
+.nav-link-toggle {
+  width: 100%;
+  background: transparent;
+  border: none;
+  text-align: left;
+}
+
 .nav-link:hover {
-  background-color: rgba(128, 0, 0, 0.05);
+  background-color: rgba(37, 99, 235, 0.05);
   color: var(--primary-color);
 }
 
@@ -120,18 +185,82 @@ const logout = () => {
 }
 
 .nav-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   margin-right: 0.75rem;
-  font-size: 1.2rem;
+  color: white;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
+}
+
+.icon-dashboard {
+  background: linear-gradient(135deg, #2f80ed, #56ccf2);
+}
+
+.icon-members {
+  background: linear-gradient(135deg, #16a085, #2ecc71);
+}
+
+.icon-reports {
+  background: linear-gradient(135deg, #8e44ad, #c0392b);
+}
+
+.nav-link.active .nav-icon,
+.nav-link-toggle.active .nav-icon {
+  background: rgba(255, 255, 255, 0.22);
+  box-shadow: none;
+}
+
+.caret {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sub-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-top: 0.25rem;
+  margin-left: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.sub-nav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  color: var(--text-muted);
+  padding: 0.5rem 0.75rem 0.5rem 2.55rem;
+  border-radius: 6px;
+  font-size: 0.92rem;
+  transition: var(--transition);
+}
+
+.sub-nav-link:hover {
+  color: var(--primary-color);
+  background-color: rgba(37, 99, 235, 0.05);
+}
+
+.sub-nav-link.active-sub {
+  color: var(--primary-color);
+  background-color: rgba(37, 99, 235, 0.1);
+  font-weight: 600;
 }
 
 .dashboard-main {
   flex: 1;
-  padding: 2rem;
+  padding: clamp(1rem, 2.2vw, 2rem);
   overflow-y: auto;
 }
 
 .main-content-wrapper {
-  max-width: 1000px;
+  width: min(100%, 1280px);
   margin: 0 auto;
 }
 
@@ -144,16 +273,23 @@ const logout = () => {
   .dashboard-body {
     flex-direction: column;
   }
-  
+
   .dashboard-sidebar {
     width: 100%;
     border-right: none;
     border-bottom: 1px solid var(--surface-border);
     padding: 1rem;
   }
-  
+
   .dashboard-main {
     padding: 1rem;
   }
 }
+
+@media (min-width: 1600px) {
+  .main-content-wrapper {
+    width: min(100%, 1440px);
+  }
+}
 </style>
+
