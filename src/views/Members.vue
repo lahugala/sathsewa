@@ -3,7 +3,10 @@
     <div class="members-container animate-fade-in">
       <div class="header-bar mb-4" style="display: flex; justify-content: space-between; align-items: center;">
         <h2>Society Members</h2>
-        <button class="btn btn-success" @click="openAddModal">+ Add New Member</button>
+        <button class="btn bg-emerald-600 hover:bg-emerald-700 text-white shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 border-none flex items-center gap-2 px-5 py-2.5 rounded-lg font-semibold" @click="openAddModal">
+          <UserPlus size="18" />
+          Add New Member
+        </button>
       </div>
 
       <div v-if="successMessage" class="alert alert-success mb-4">
@@ -93,7 +96,7 @@ import PaymentLedgerModal from '../components/PaymentLedgerModal.vue'
 import BenefitsModal from '../components/BenefitsModal.vue'
 import Swal from 'sweetalert2'
 import 'sweetalert2/dist/sweetalert2.min.css'
-import { BookOpen, Gift, Pencil, Trash2 } from 'lucide-vue-next'
+import { BookOpen, Gift, Pencil, Trash2, UserPlus } from 'lucide-vue-next'
 
 const members = ref([])
 const loading = ref(true)
