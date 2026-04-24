@@ -3,6 +3,7 @@
     <!-- Navbar -->
     <header class="dashboard-navbar glass-panel">
       <div class="navbar-brand">
+        <img src="/logo.png" alt="Sathsewa Society logo" class="navbar-logo">
         <h2>Sathsewa Society</h2>
       </div>
       <div class="navbar-actions">
@@ -118,6 +119,8 @@ const logout = () => {
   justify-content: space-between;
   align-items: center;
   padding: 1rem 2rem;
+  background: linear-gradient(135deg, #0f172a 0%, #14532d 100%);
+  border-color: rgba(255, 255, 255, 0.12);
   border-radius: 0;
   border-left: none;
   border-right: none;
@@ -125,12 +128,38 @@ const logout = () => {
   position: sticky;
   top: 0;
   z-index: 10;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.22);
 }
 
 .navbar-brand h2 {
   margin: 0;
   font-size: 1.5rem;
-  color: var(--primary-color);
+  color: #ffffff;
+}
+
+.navbar-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.navbar-logo {
+  width: 46px;
+  height: 46px;
+  object-fit: contain;
+  flex: 0 0 auto;
+  filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.25));
+}
+
+.navbar-actions .btn-outline {
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.7);
+}
+
+.navbar-actions .btn-outline:hover {
+  background-color: rgba(255, 255, 255, 0.12);
+  border-color: #ffffff;
 }
 
 .dashboard-body {

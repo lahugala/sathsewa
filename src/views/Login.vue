@@ -2,6 +2,7 @@
   <div class="login-wrapper">
     <div class="login-card glass-panel animate-fade-in">
       <div class="login-header">
+        <img src="/logo.png" alt="Sathsewa Society logo" class="login-logo">
         <h1>Sathsewa Society</h1>
         <p class="text-muted">Welcome back! Please login to your account.</p>
       </div>
@@ -80,6 +81,13 @@ const handleLogin = async () => {
 .login-header {
   text-align: center;
   margin-bottom: 2.5rem;
+}
+
+.login-logo {
+  width: min(150px, 48vw);
+  height: auto;
+  margin: 0 auto 1.25rem;
+  display: block;
 }
 
 .login-header h1 {
