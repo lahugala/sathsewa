@@ -1,5 +1,7 @@
 <?php
 require 'db.php';
+require 'schema.php';
+ensure_app_schema($pdo);
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);

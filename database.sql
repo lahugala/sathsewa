@@ -17,8 +17,20 @@ CREATE TABLE IF NOT EXISTS members (
     address TEXT NOT NULL,
     city VARCHAR(100) NOT NULL,
     contact_number VARCHAR(20) NOT NULL,
+    status ENUM('Active', 'Inactive', 'Suspended') NOT NULL DEFAULT 'Active',
+    status_reason VARCHAR(255) NULL,
     is_deleted TINYINT(1) DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS member_status_history (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    member_id INT NOT NULL,
+    old_status ENUM('Active', 'Inactive', 'Suspended') NULL,
+    new_status ENUM('Active', 'Inactive', 'Suspended') NOT NULL,
+    reason VARCHAR(255),
+    changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS dependents (

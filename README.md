@@ -1,6 +1,6 @@
-# Sathsewa Society Member Management System
+# Sathsewa Welfare Society Member Management System
 
-A modernized, web-based platform for managing the members, payments, and benefits of the Sathsewa Society. This application transitions the society from physical ledger books to an efficient, searchable digital system.
+A modernized, web-based platform for managing the members, payments, and benefits of the Sathsewa Welfare Society. This application transitions the society from physical ledger books to an efficient, searchable digital system.
 
 ## Features
 

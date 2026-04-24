@@ -1,7 +1,7 @@
 <template>
   <Teleport to="body">
     <div class="modal-overlay" v-if="show">
-      <div class="modal-container glass-panel animate-fade-in" style="max-width: 900px;">
+      <div class="modal-container glass-panel animate-fade-in" style="max-width: 1125px;">
         <div class="modal-header">
           <h2>Benefits & Payouts: {{ member?.name }} ({{ member?.membership_number || 'N/A' }})</h2>
           <button class="btn-close" @click="$emit('close')" type="button" aria-label="Close">
@@ -12,8 +12,6 @@
         <div class="modal-body" style="display: flex; gap: 2rem;">
           <div class="form-section" style="flex: 1;">
             <h3 class="section-title">Record New Benefit</h3>
-            <div v-if="saveMessage" class="text-success mb-4">{{ saveMessage }}</div>
-            <div v-if="errorMsg" class="text-danger mb-4">{{ errorMsg }}</div>
 
             <form @submit.prevent="saveBenefit">
               <div class="form-group">
@@ -26,10 +24,29 @@
 
               <div class="form-group">
                 <label class="form-label">Paid Date</label>
-                <input type="date" v-model="form.paid_date" class="form-control" required>
+                <VueDatePicker
+                  v-model="form.paid_date"
+                  model-type="yyyy-MM-dd"
+                  auto-apply
+                  :clearable="false"
+                  :enable-time-picker="false"
+                  placeholder="Select paid date"
+                  teleport
+                  class="date-picker"
+                />
               </div>
 
               <template v-if="form.benefit_type === 'death_gratuity'">
+                <div class="form-group">
+                  <label class="form-label">Select Dependent</label>
+                  <select v-model="selectedDependentKey" class="form-control" @change="fillDependentFields">
+                    <option value="">Choose from dependent list</option>
+                    <option v-for="dep in dependents" :key="dep.id || `${dep.name}-${dep.relationship}`" :value="dependentKey(dep)">
+                      {{ dep.name }} ({{ dep.relationship }})
+                    </option>
+                  </select>
+                  <p v-if="dependents.length === 0" class="field-help">No dependents saved for this member.</p>
+                </div>
                 <div class="form-group">
                   <label class="form-label">Dependent Name</label>
                   <input type="text" v-model="form.dependent_name" class="form-control" required>
@@ -111,9 +128,8 @@
 
 <script setup>
 import { ref, reactive, watch } from 'vue'
-import Swal from 'sweetalert2'
-import 'sweetalert2/dist/sweetalert2.min.css'
 import { Trash2, X } from 'lucide-vue-next'
+import { alertError, alertSuccess, alertWarning, confirmWarning } from '../utils/alerts'
 
 const props = defineProps({
   show: Boolean,
@@ -123,9 +139,9 @@ const props = defineProps({
 defineEmits(['close'])
 
 const benefits = ref([])
+const dependents = ref([])
 const saving = ref(false)
-const saveMessage = ref('')
-const errorMsg = ref('')
+const selectedDependentKey = ref('')
 
 const form = reactive({
   benefit_type: 'death_gratuity',
@@ -143,6 +159,7 @@ const resetForm = () => {
   form.relationship = ''
   form.aid_nature = ''
   form.amount = 0
+  selectedDependentKey.value = ''
 }
 
 const formatAmount = (value) => {
@@ -163,12 +180,37 @@ const fetchBenefits = async () => {
   }
 }
 
+const fetchDependents = async () => {
+  dependents.value = []
+  if (!props.member?.id) return
+  try {
+    const res = await fetch(`/api/get_member.php?id=${props.member.id}`)
+    const data = await res.json()
+    if (data.success) {
+      dependents.value = Array.isArray(data.member?.dependents) ? data.member.dependents : []
+    }
+  } catch (e) {
+    console.error('Failed to load dependents', e)
+  }
+}
+
+const dependentKey = (dep) => {
+  return `${dep.name}|||${dep.relationship}`
+}
+
+const fillDependentFields = () => {
+  if (!selectedDependentKey.value) return
+  const selected = dependents.value.find((dep) => dependentKey(dep) === selectedDependentKey.value)
+  if (!selected) return
+  form.dependent_name = selected.name
+  form.relationship = selected.relationship
+}
+
 watch(() => props.show, (newVal) => {
   if (newVal) {
-    saveMessage.value = ''
-    errorMsg.value = ''
     resetForm()
     fetchBenefits()
+    fetchDependents()
   }
 })
 
@@ -177,29 +219,28 @@ watch(
   (id) => {
     if (props.show && id) {
       fetchBenefits()
+      fetchDependents()
     }
   }
 )
 
 const saveBenefit = async () => {
   if (!props.member?.id) {
-    errorMsg.value = 'Member is not selected.'
+    alertWarning('Member not selected', 'Please select a member before adding a benefit.')
     return
   }
 
   if (form.benefit_type === 'death_gratuity' && (!form.dependent_name || !form.relationship)) {
-    errorMsg.value = 'Dependent name and relationship are required.'
+    alertWarning('Dependent details required', 'Dependent name and relationship are required.')
     return
   }
 
   if (form.benefit_type === 'special_donation' && !form.aid_nature) {
-    errorMsg.value = 'Nature of aid is required.'
+    alertWarning('Aid nature required', 'Nature of aid is required.')
     return
   }
 
   saving.value = true
-  errorMsg.value = ''
-  saveMessage.value = ''
 
   const payload = {
     member_id: props.member.id,
@@ -214,30 +255,23 @@ const saveBenefit = async () => {
     })
     const data = await res.json()
     if (data.success) {
-      saveMessage.value = data.message
       resetForm()
       fetchBenefits()
-      setTimeout(() => {
-        saveMessage.value = ''
-      }, 3000)
+      alertSuccess('Benefit saved', data.message || 'Benefit record added successfully.')
     } else {
-      errorMsg.value = data.message
+      alertError('Save failed', data.message || 'Failed to save benefit record.')
     }
   } catch (e) {
-    errorMsg.value = 'Network error'
+    alertError('Network error', 'Network error while saving benefit record.')
   } finally {
     saving.value = false
   }
 }
 
 const deleteBenefit = async (id) => {
-  const result = await Swal.fire({
+  const result = await confirmWarning({
     title: 'Are you sure?',
     text: "You won't be able to revert this record!",
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonColor: '#dc3545',
-    cancelButtonColor: '#6c757d',
     confirmButtonText: 'Yes, delete it!'
   })
 
@@ -250,13 +284,13 @@ const deleteBenefit = async (id) => {
       })
       const data = await res.json()
       if (data.success) {
-        Swal.fire('Deleted!', 'Record deleted successfully.', 'success')
+        alertSuccess('Deleted!', 'Record deleted successfully.')
         fetchBenefits()
       } else {
-        Swal.fire('Error!', data.message, 'error')
+        alertError('Error!', data.message || 'Failed to delete record.')
       }
     } catch (e) {
-      Swal.fire('Error!', 'Network error deleting record', 'error')
+      alertError('Error!', 'Network error deleting record.')
     }
   }
 }
@@ -272,11 +306,12 @@ const deleteBenefit = async (id) => {
 .btn-close:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: 6px; }
 .modal-body { padding: 2rem; overflow-y: auto; }
 .section-title { font-size: 1.1rem; color: var(--primary-dark); border-bottom: 2px solid var(--primary-light); padding-bottom: 0.5rem; margin-bottom: 1rem; display: inline-block; }
+.date-picker :deep(.dp__input) { min-height: 48px; border: 1px solid #dee2e6; border-radius: 8px; font-family: inherit; }
+.date-picker :deep(.dp__input:focus) { border-color: var(--primary-light); box-shadow: var(--focus-ring); }
 .data-table { width: 100%; border-collapse: collapse; }
 .data-table th, .data-table td { padding: 0.75rem; text-align: left; border-bottom: 1px solid rgba(0,0,0,0.05); }
 .data-table th { font-weight: 600; color: var(--primary-color); background: rgba(37, 99, 235, 0.03); }
-.text-success { color: var(--success); font-weight: 500; }
-.text-danger { color: var(--error); font-weight: 500; }
+.field-help { margin-top: 0.4rem; color: var(--text-muted); font-size: 0.82rem; }
 .badge { padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; display: inline-block; }
 .badge-dark { background: #343a40; color: white; }
 .badge-info { background: #17a2b8; color: white; }

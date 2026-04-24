@@ -11,11 +11,6 @@
         </button>
       </div>
 
-      <div v-if="loadError" class="dashboard-alert mb-4">
-        <p>{{ loadError }}</p>
-        <button class="btn btn-sm btn-outline" type="button" @click="loadDashboard">Try Again</button>
-      </div>
-
       <!-- Stat Cards -->
       <div class="stat-cards-grid mb-4">
         <div class="stat-card glass-panel" :class="{ 'is-loading': isLoading }">
@@ -100,6 +95,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { Users, UserPlus, BarChart3, TrendingUp, TrendingDown, Minus } from 'lucide-vue-next'
 import DashboardLayout from '../components/DashboardLayout.vue'
+import { alertError } from '../utils/alerts'
 
 const stats = ref({
   totalMembers: 0,
@@ -109,7 +105,6 @@ const stats = ref({
 })
 const recentMembers = ref([])
 const isLoading = ref(false)
-const loadError = ref('')
 
 const avgDependentsPerMember = computed(() => {
   const members = Number(stats.value.totalMembers || 0)
@@ -134,7 +129,6 @@ const trendClass = (trend) => {
 
 const loadDashboard = async () => {
   isLoading.value = true
-  loadError.value = ''
   try {
     const res = await fetch('/api/get_dashboard_stats.php')
     const data = await res.json()
@@ -142,11 +136,11 @@ const loadDashboard = async () => {
       stats.value = data.stats
       recentMembers.value = data.recentMembers
     } else {
-      loadError.value = data.message || 'Failed to load dashboard data.'
+      alertError('Dashboard error', data.message || 'Failed to load dashboard data.')
     }
   } catch (error) {
     console.error('Error fetching dashboard stats:', error)
-    loadError.value = 'Network error while loading dashboard data.'
+    alertError('Network error', 'Network error while loading dashboard data.')
   } finally {
     isLoading.value = false
   }
@@ -185,22 +179,6 @@ onMounted(() => {
   background: rgba(255, 255, 255, 0.25);
   color: #fff;
   border-color: rgba(255, 255, 255, 0.55);
-}
-
-.dashboard-alert {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0.85rem 1rem;
-  border-radius: 10px;
-  border: 1px solid rgba(220, 53, 69, 0.25);
-  background: rgba(220, 53, 69, 0.08);
-  color: #a52b2b;
-}
-
-.dashboard-alert p {
-  margin: 0;
 }
 
 .stat-cards-grid {
@@ -362,11 +340,6 @@ onMounted(() => {
 
   .btn-refresh {
     width: 100%;
-  }
-
-  .dashboard-alert {
-    flex-direction: column;
-    align-items: stretch;
   }
 
   .data-table th:first-child,

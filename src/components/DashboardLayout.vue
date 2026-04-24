@@ -3,8 +3,8 @@
     <!-- Navbar -->
     <header class="dashboard-navbar glass-panel">
       <div class="navbar-brand">
-        <img src="/logo.png" alt="Sathsewa Society logo" class="navbar-logo">
-        <h2>Sathsewa Society</h2>
+        <img src="/logo.png" alt="Sathsewa Welfare Society logo" class="navbar-logo">
+        <h2>Sathsewa Welfare Society</h2>
       </div>
       <div class="navbar-actions">
         <button @click="logout" class="btn btn-outline btn-sm">Logout</button>
@@ -133,8 +133,9 @@ const logout = () => {
 
 .navbar-brand h2 {
   margin: 0;
-  font-size: 1.5rem;
+  font-size: 1.35rem;
   color: #ffffff;
+  line-height: 1.1;
 }
 
 .navbar-brand {
@@ -299,6 +300,20 @@ const logout = () => {
 }
 
 @media (max-width: 768px) {
+  .dashboard-navbar {
+    padding: 0.85rem 1rem;
+    gap: 1rem;
+  }
+
+  .navbar-brand h2 {
+    font-size: 1.05rem;
+  }
+
+  .navbar-logo {
+    width: 40px;
+    height: 40px;
+  }
+
   .dashboard-body {
     flex-direction: column;
   }

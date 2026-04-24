@@ -9,13 +9,6 @@
         </button>
       </div>
 
-      <div v-if="successMessage" class="alert alert-success mb-4">
-        {{ successMessage }}
-      </div>
-      <div v-if="errorMessage" class="alert alert-error mb-4">
-        {{ errorMessage }}
-      </div>
-
       <div class="glass-panel" style="overflow: hidden;">
         <div class="search-bar">
           <input type="search" v-model="searchQuery" class="form-control" placeholder="Search by name, NIC or city...">
@@ -29,6 +22,7 @@
                 <th>NIC</th>
                 <th>City</th>
                 <th>Contact</th>
+                <th>Status</th>
                 <th>Mem. Date</th>
                 <th class="sticky-actions">Actions</th>
               </tr>
@@ -40,6 +34,12 @@
                 <td>{{ member.nic }}</td>
                 <td>{{ member.city }}</td>
                 <td>{{ member.contact_number }}</td>
+                <td>
+                  <span class="status-badge" :class="statusClass(member.status)">
+                    {{ member.status || 'Active' }}
+                  </span>
+                  <div v-if="member.status_reason" class="status-reason">{{ member.status_reason }}</div>
+                </td>
                 <td>{{ member.membership_date || member.date_added }}</td>
                 <td class="sticky-actions" style="white-space: nowrap;">
                   <button class="btn btn-sm btn-success" @click="openLedgerModal(member)" style="margin-right: 0.25rem; padding: 0.4rem;" title="Ledger">
@@ -94,16 +94,13 @@ import DashboardLayout from '../components/DashboardLayout.vue'
 import ApplicationModal from '../components/ApplicationModal.vue'
 import PaymentLedgerModal from '../components/PaymentLedgerModal.vue'
 import BenefitsModal from '../components/BenefitsModal.vue'
-import Swal from 'sweetalert2'
-import 'sweetalert2/dist/sweetalert2.min.css'
 import { BookOpen, Gift, Pencil, Trash2, UserPlus } from 'lucide-vue-next'
+import { alertError, alertSuccess, confirmWarning } from '../utils/alerts'
 
 const members = ref([])
 const loading = ref(true)
 const isModalOpen = ref(false)
 const editingId = ref(null)
-const successMessage = ref('')
-const errorMessage = ref('')
 const searchQuery = ref('')
 const isLedgerOpen = ref(false)
 const isBenefitsOpen = ref(false)
@@ -116,9 +113,12 @@ const fetchMembers = async () => {
     const data = await res.json()
     if (data.success) {
       members.value = data.members
+    } else {
+      alertError('Failed to load members', data.message || 'Unable to load member list.')
     }
   } catch (error) {
     console.error('Error fetching members:', error)
+    alertError('Network error', 'Network error while loading members.')
   } finally {
     loading.value = false
   }
@@ -131,9 +131,19 @@ const filteredMembers = computed(() => {
     m.name.toLowerCase().includes(query) ||
     m.nic.toLowerCase().includes(query) ||
     m.city.toLowerCase().includes(query) ||
+    String(m.status || '').toLowerCase().includes(query) ||
+    String(m.status_reason || '').toLowerCase().includes(query) ||
     (m.membership_number && m.membership_number.toLowerCase().includes(query))
   )
 })
+
+const statusClass = (status) => {
+  return {
+    'status-active': status === 'Active' || !status,
+    'status-inactive': status === 'Inactive',
+    'status-suspended': status === 'Suspended'
+  }
+}
 
 const openAddModal = () => {
   editingId.value = null
@@ -171,21 +181,14 @@ const closeBenefitsModal = () => {
 }
 
 const handleSuccess = (message) => {
-  successMessage.value = message
+  alertSuccess('Member saved', message || 'Member saved successfully.')
   fetchMembers() // Refresh list
-  setTimeout(() => {
-    successMessage.value = ''
-  }, 5000)
 }
 
 const deleteMember = async (id) => {
-  const result = await Swal.fire({
+  const result = await confirmWarning({
     title: 'Are you sure?',
     text: "You won't be able to revert this!",
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonColor: '#dc3545',
-    cancelButtonColor: '#6c757d',
     confirmButtonText: 'Yes, delete it!'
   })
 
@@ -198,13 +201,13 @@ const deleteMember = async (id) => {
       })
       const data = await res.json()
       if (data.success) {
-        Swal.fire('Deleted!', 'Member deleted successfully.', 'success')
+        alertSuccess('Deleted!', 'Member deleted successfully.')
         fetchMembers()
       } else {
-        Swal.fire('Error!', data.message || 'Failed to delete member', 'error')
+        alertError('Error!', data.message || 'Failed to delete member')
       }
     } catch (e) {
-      Swal.fire('Error!', 'Network error deleting member', 'error')
+      alertError('Error!', 'Network error deleting member')
     }
   }
 }
@@ -343,27 +346,44 @@ onMounted(() => {
   }
 }
 
-.alert {
-  padding: 1rem;
-  border-radius: 8px;
-  font-weight: 500;
-}
-
-.alert-success {
-  background-color: rgba(25, 135, 84, 0.1);
-  color: var(--success);
-  border: 1px solid rgba(25, 135, 84, 0.2);
-}
-
-.alert-error {
-  background-color: rgba(220, 53, 69, 0.1);
-  color: var(--error);
-  border: 1px solid rgba(220, 53, 69, 0.2);
-}
-
 .btn-sm {
   padding: 0.4rem 0.8rem;
   font-size: 0.875rem;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 76px;
+  padding: 0.25rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.status-active {
+  background: rgba(25, 135, 84, 0.12);
+  color: #126742;
+}
+
+.status-inactive {
+  background: rgba(108, 117, 125, 0.14);
+  color: #495057;
+}
+
+.status-suspended {
+  background: rgba(220, 53, 69, 0.12);
+  color: #b42332;
+}
+
+.status-reason {
+  max-width: 180px;
+  margin-top: 0.25rem;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  line-height: 1.25;
+  white-space: normal;
 }
 </style>
 

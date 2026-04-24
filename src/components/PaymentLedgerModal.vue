@@ -1,7 +1,7 @@
 <template>
   <Teleport to="body">
     <div class="modal-overlay" v-if="show">
-      <div class="modal-container glass-panel animate-fade-in" style="max-width: 1000px;">
+      <div class="modal-container glass-panel animate-fade-in" style="max-width: 1250px;">
         <div class="modal-header">
           <h2>Ledger: {{ member?.name }} ({{ member?.membership_number || 'N/A' }})</h2>
           <button class="btn-close" @click="$emit('close')" type="button" aria-label="Close">
@@ -17,8 +17,6 @@
                 <option v-for="y in availableYears" :key="y" :value="y">{{ y }}</option>
               </select>
             </div>
-            <div v-if="saveMessage" class="text-success">{{ saveMessage }}</div>
-            <div v-if="errorMsg" class="text-danger">{{ errorMsg }}</div>
           </div>
 
           <div class="table-responsive">
@@ -35,15 +33,37 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="(m, idx) in monthsList" :key="idx">
-                  <td>{{ m.name }}</td>
-                  <td><input type="date" v-model="m.data.paid_date" class="form-control form-control-sm"></td>
-                  <td><input type="number" v-model="m.data.member_fee" class="form-control form-control-sm"></td>
-                  <td><input type="number" v-model="m.data.share_capital" class="form-control form-control-sm"></td>
-                  <td><input type="number" v-model="m.data.special_charges" class="form-control form-control-sm"></td>
-                  <td><input type="text" v-model="m.data.remarks" class="form-control form-control-sm"></td>
+                <tr
+                  v-for="(m, idx) in monthsList"
+                  :key="idx"
+                  :class="{ 'month-complete': m.isComplete && !isBeforeMemberDateMonth(idx + 1), 'month-locked': isBeforeMemberDateMonth(idx + 1) }"
+                >
                   <td>
-                    <button class="btn btn-sm btn-primary" @click="savePayment(idx + 1, m.data)" :disabled="m.saving" style="padding: 0.4rem;" title="Save">
+                    <div class="month-cell">
+                      <span>{{ m.name }}</span>
+                      <span v-if="isBeforeMemberDateMonth(idx + 1)" class="locked-badge">Before member date</span>
+                      <span v-if="m.isComplete && !isBeforeMemberDateMonth(idx + 1)" class="complete-badge">Paid</span>
+                    </div>
+                  </td>
+                  <td>
+                    <VueDatePicker
+                      v-model="m.data.paid_date"
+                      model-type="yyyy-MM-dd"
+                      auto-apply
+                      :clearable="false"
+                      :enable-time-picker="false"
+                      :min-date="memberMinDate"
+                      :disabled="isBeforeMemberDateMonth(idx + 1)"
+                      teleport
+                      class="ledger-date-picker"
+                    />
+                  </td>
+                  <td><input type="number" v-model="m.data.member_fee" class="form-control form-control-sm" :disabled="isBeforeMemberDateMonth(idx + 1)"></td>
+                  <td><input type="number" v-model="m.data.share_capital" class="form-control form-control-sm" :disabled="isBeforeMemberDateMonth(idx + 1)"></td>
+                  <td><input type="number" v-model="m.data.special_charges" class="form-control form-control-sm" :disabled="isBeforeMemberDateMonth(idx + 1)"></td>
+                  <td><input type="text" v-model="m.data.remarks" class="form-control form-control-sm" :disabled="isBeforeMemberDateMonth(idx + 1)"></td>
+                  <td>
+                    <button class="btn btn-sm btn-primary" @click="savePayment(idx + 1, m.data)" :disabled="m.saving || isBeforeMemberDateMonth(idx + 1)" style="padding: 0.4rem;" title="Save">
                       <Save size="16" v-if="!m.saving" />
                       <span v-else>...</span>
                     </button>
@@ -59,8 +79,9 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { Save, X } from 'lucide-vue-next'
+import { alertError, alertSuccess, alertWarning } from '../utils/alerts'
 
 const props = defineProps({
   show: Boolean,
@@ -72,9 +93,6 @@ const currentYear = new Date().getFullYear()
 const selectedYear = ref(currentYear)
 const availableYears = Array.from({length: 15}, (_, i) => currentYear - 10 + i)
 
-const saveMessage = ref('')
-const errorMsg = ref('')
-
 const monthsNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
 const monthsList = ref([])
 
@@ -83,6 +101,7 @@ const initMonths = () => {
     name,
     monthNum: idx + 1,
     saving: false,
+    isComplete: false,
     data: {
       paid_date: '',
       member_fee: 100, // Default as per doc
@@ -91,6 +110,39 @@ const initMonths = () => {
       remarks: ''
     }
   }))
+}
+
+const parseDate = (value) => {
+  if (!value) return null
+  const date = new Date(`${value}T00:00:00`)
+  return Number.isNaN(date.getTime()) ? null : date
+}
+
+const memberMinDate = computed(() => parseDate(props.member?.membership_date))
+
+const isBeforeMemberDateMonth = (monthNum) => {
+  const memberDate = parseDate(props.member?.membership_date)
+  if (!memberDate) return false
+
+  const paymentMonth = new Date(Number(selectedYear.value), monthNum - 1, 1)
+  const memberMonth = new Date(memberDate.getFullYear(), memberDate.getMonth(), 1)
+  return paymentMonth < memberMonth
+}
+
+const isPaidDateBeforeMemberDate = (paidDateValue) => {
+  const memberDate = parseDate(props.member?.membership_date)
+  const paidDate = parseDate(paidDateValue)
+  if (!memberDate || !paidDate) return false
+  return paidDate < memberDate
+}
+
+const isPaymentComplete = (data) => {
+  const total =
+    Number(data.member_fee || 0) +
+    Number(data.share_capital || 0) +
+    Number(data.special_charges || 0)
+
+  return total > 0
 }
 
 const fetchPayments = async () => {
@@ -109,6 +161,7 @@ const fetchPayments = async () => {
           special_charges: parseFloat(p.special_charges),
           remarks: p.remarks || ''
         }
+        monthsList.value[idx].isComplete = isPaymentComplete(monthsList.value[idx].data)
       })
     }
   } catch (e) {
@@ -118,16 +171,23 @@ const fetchPayments = async () => {
 
 watch(() => props.show, (newVal) => {
   if (newVal) {
-    saveMessage.value = ''
-    errorMsg.value = ''
     fetchPayments()
   }
 })
 
 const savePayment = async (monthNum, data) => {
+  if (isBeforeMemberDateMonth(monthNum)) {
+    alertWarning('Before member date', 'Cannot save payment for a month before the member date.')
+    return
+  }
+
   if (!data.paid_date) {
-    errorMsg.value = `Paid Date is required for ${monthsNames[monthNum-1]}`
-    setTimeout(() => errorMsg.value = '', 3000)
+    alertWarning('Paid date required', `Paid Date is required for ${monthsNames[monthNum-1]}.`)
+    return
+  }
+
+  if (isPaidDateBeforeMemberDate(data.paid_date)) {
+    alertWarning('Invalid paid date', 'Paid date cannot be before the member date.')
     return
   }
   
@@ -152,13 +212,13 @@ const savePayment = async (monthNum, data) => {
     })
     const resData = await res.json()
     if (resData.success) {
-      saveMessage.value = `Saved ${monthsNames[monthNum-1]} successfully!`
-      setTimeout(() => saveMessage.value = '', 3000)
+      monthsList.value[monthNum-1].isComplete = isPaymentComplete(data)
+      alertSuccess('Payment saved', `Saved ${monthsNames[monthNum-1]} successfully!`)
     } else {
-      errorMsg.value = resData.message
+      alertError('Save failed', resData.message || 'Failed to save payment.')
     }
   } catch (e) {
-    errorMsg.value = "Failed to save payment"
+    alertError('Save failed', 'Failed to save payment.')
   } finally {
     monthsList.value[monthNum-1].saving = false
   }
@@ -173,13 +233,75 @@ const savePayment = async (monthNum, data) => {
 .btn-close { background: none; border: none; cursor: pointer; color: var(--text-muted); display: inline-flex; align-items: center; justify-content: center; }
 .btn-close:hover { color: var(--error); }
 .btn-close:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: 6px; }
-.modal-body { padding: 2rem; }
+.modal-body { padding: 2rem; overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
+.table-responsive { max-height: 62vh; overflow: auto; border: 1px solid rgba(0,0,0,0.06); border-radius: 8px; }
 .data-table { width: 100%; border-collapse: collapse; }
 .data-table th, .data-table td { padding: 0.75rem; text-align: left; border-bottom: 1px solid rgba(0,0,0,0.05); }
-.data-table th { font-weight: 600; color: var(--primary-color); background: rgba(37, 99, 235, 0.03); }
+.data-table th { font-weight: 600; color: var(--primary-color); background: #f6f9ff; }
+.ledger-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.08);
+}
+.ledger-table tbody tr.month-complete {
+  background: rgba(25, 135, 84, 0.08);
+}
+.ledger-table tbody tr.month-complete td {
+  border-bottom-color: rgba(25, 135, 84, 0.18);
+}
+.ledger-table tbody tr.month-complete:hover {
+  background: rgba(25, 135, 84, 0.13);
+}
+.ledger-table tbody tr.month-locked {
+  background: rgba(108, 117, 125, 0.08);
+  color: #6c757d;
+}
+.ledger-table tbody tr.month-locked:hover {
+  background: rgba(108, 117, 125, 0.12);
+}
+.month-cell {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-width: 120px;
+  flex-wrap: wrap;
+}
+.complete-badge,
+.locked-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.18rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+.complete-badge {
+  background: rgba(25, 135, 84, 0.16);
+  color: #126742;
+}
+.locked-badge {
+  background: rgba(108, 117, 125, 0.15);
+  color: #495057;
+}
+.ledger-date-picker {
+  min-width: 148px;
+}
+.ledger-date-picker :deep(.dp__input) {
+  min-height: 36px;
+  padding: 0.4rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  font-family: inherit;
+}
+.ledger-date-picker :deep(.dp__input:focus) {
+  border-color: var(--primary-light);
+  box-shadow: var(--focus-ring);
+}
 .form-control-sm { padding: 0.4rem; font-size: 0.875rem; width: 100%; box-sizing: border-box; border: 1px solid #ddd; border-radius: 4px;}
-.text-success { color: var(--success); font-weight: 500; }
-.text-danger { color: var(--error); font-weight: 500; }
 </style>
 
 

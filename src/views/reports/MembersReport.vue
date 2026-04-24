@@ -23,11 +23,6 @@
         </div>
       </div>
 
-      <div v-if="loadError" class="alert alert-error mb-4">
-        <span>{{ loadError }}</span>
-        <button class="btn btn-sm btn-outline" type="button" @click="loadReport">Try Again</button>
-      </div>
-
       <div class="summary-grid mb-4 no-print-detail">
         <div class="glass-panel summary-card">
           <p class="summary-label">Members</p>
@@ -44,6 +39,14 @@
         <div class="glass-panel summary-card">
           <p class="summary-label">Total Benefits</p>
           <p class="summary-value">{{ formatCurrency(totals.benefits) }}</p>
+        </div>
+        <div class="glass-panel summary-card">
+          <p class="summary-label">Outstanding Members</p>
+          <p class="summary-value">{{ outstandingMembers.length }}</p>
+        </div>
+        <div class="glass-panel summary-card">
+          <p class="summary-label">Outstanding Amount</p>
+          <p class="summary-value">{{ formatCurrency(totals.outstanding) }}</p>
         </div>
       </div>
 
@@ -73,6 +76,7 @@
                 <strong>{{ member.name }}</strong>
                 <div class="row-subtext">
                   {{ member.membership_number || '-' }} | {{ member.nic }} | {{ member.city }}
+                  | {{ member.status || 'Active' }}
                 </div>
               </div>
               <button class="btn btn-sm btn-outline" type="button" @click="loadMemberDetail(member.id)">
@@ -80,6 +84,51 @@
               </button>
             </div>
           </div>
+        </div>
+      </div>
+
+      <div class="glass-panel mb-4 outstanding-panel no-print-detail">
+        <div class="panel-heading">
+          <div>
+            <h3>Outstanding Payment Members</h3>
+            <p class="row-subtext">Calculated through {{ outstandingAsOf || 'current date' }} from each member's membership date.</p>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="data-table report-table compact" v-if="outstandingMembers.length > 0">
+            <thead>
+              <tr>
+                <th>Membership No</th>
+                <th>Name</th>
+                <th>Status</th>
+                <th>Missing Months</th>
+                <th>Outstanding</th>
+                <th>Missing Periods</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="member in outstandingMembers" :key="member.id">
+                <td>{{ member.membership_number || '-' }}</td>
+                <td>{{ member.name }}</td>
+                <td>
+                  <span class="status-badge" :class="statusClass(member.status)">
+                    {{ member.status || 'Active' }}
+                  </span>
+                </td>
+                <td>{{ member.outstanding.outstanding_months }}</td>
+                <td>{{ formatCurrency(member.outstanding.outstanding_amount) }}</td>
+                <td>{{ formatMissingPeriods(member.outstanding.missing_periods) }}</td>
+                <td>
+                  <button class="btn btn-sm btn-outline" type="button" @click="loadMemberDetail(member.id)">
+                    View Detail
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <p v-else class="text-center py-4">No outstanding payment members found.</p>
         </div>
       </div>
 
@@ -107,6 +156,15 @@
             <div class="extract-row"><span class="extract-label">NIC</span><span class="extract-value">{{ memberDetail.member.nic }}</span></div>
             <div class="extract-row"><span class="extract-label">City</span><span class="extract-value">{{ memberDetail.member.city }}</span></div>
             <div class="extract-row"><span class="extract-label">Contact</span><span class="extract-value">{{ memberDetail.member.contact_number }}</span></div>
+            <div class="extract-row">
+              <span class="extract-label">Status</span>
+              <span class="extract-value">
+                <span class="status-badge" :class="statusClass(memberDetail.member.status)">
+                  {{ memberDetail.member.status || 'Active' }}
+                </span>
+              </span>
+            </div>
+            <div v-if="memberDetail.member.status_reason" class="extract-row"><span class="extract-label">Status Reason</span><span class="extract-value">{{ memberDetail.member.status_reason }}</span></div>
             <div class="extract-row"><span class="extract-label">Address</span><span class="extract-value">{{ memberDetail.member.address || '-' }}</span></div>
             <div class="extract-row"><span class="extract-label">Date Added</span><span class="extract-value">{{ memberDetail.member.date_added || '-' }}</span></div>
           </div>
@@ -118,6 +176,37 @@
             <div class="extract-row"><span class="extract-label">Benefits Count</span><span class="extract-value">{{ memberDetail.summary.benefits_count }}</span></div>
             <div class="extract-row"><span class="extract-label">Total Paid</span><span class="extract-value">{{ formatCurrency(memberDetail.summary.total_paid) }}</span></div>
             <div class="extract-row"><span class="extract-label">Total Benefits</span><span class="extract-value">{{ formatCurrency(memberDetail.summary.total_benefits) }}</span></div>
+            <div class="extract-row"><span class="extract-label">Outstanding Months</span><span class="extract-value">{{ memberDetail.outstanding?.outstanding_months || 0 }}</span></div>
+            <div class="extract-row"><span class="extract-label">Outstanding Amount</span><span class="extract-value">{{ formatCurrency(memberDetail.outstanding?.outstanding_amount || 0) }}</span></div>
+          </div>
+
+          <div class="detail-section mb-4">
+            <h4>Status History</h4>
+            <div class="table-responsive">
+              <table class="data-table report-table compact" v-if="memberDetail.status_history.length > 0">
+                <thead>
+                  <tr>
+                    <th>Changed At</th>
+                    <th>Previous</th>
+                    <th>New Status</th>
+                    <th>Reason</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(item, index) in memberDetail.status_history" :key="index">
+                    <td>{{ item.changed_at }}</td>
+                    <td>{{ item.old_status || '-' }}</td>
+                    <td>
+                      <span class="status-badge" :class="statusClass(item.new_status)">
+                        {{ item.new_status }}
+                      </span>
+                    </td>
+                    <td>{{ item.reason || '-' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+              <p v-else class="text-center py-4">No status history available.</p>
+            </div>
           </div>
 
           <div class="detail-section mb-4">
@@ -145,6 +234,12 @@
 
           <div class="detail-section mb-4">
             <h4>Payment History</h4>
+            <div class="outstanding-summary" v-if="memberDetail.outstanding?.outstanding_months > 0">
+              <strong>Outstanding:</strong>
+              {{ memberDetail.outstanding.outstanding_months }} month(s),
+              {{ formatCurrency(memberDetail.outstanding.outstanding_amount) }}
+              <span>({{ formatMissingPeriods(memberDetail.outstanding.missing_periods) }})</span>
+            </div>
             <div class="table-responsive">
               <table class="data-table report-table compact" v-if="filteredDetailPayments.length > 0">
                 <thead>
@@ -207,10 +302,6 @@
           </div>
         </div>
       </div>
-
-      <div v-else-if="detailError" class="alert alert-error mt-4">
-        <span>{{ detailError }}</span>
-      </div>
     </div>
   </DashboardLayout>
 </template>
@@ -218,16 +309,15 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import DashboardLayout from '../../components/DashboardLayout.vue'
+import { alertError, alertWarning } from '../../utils/alerts'
 
 const members = ref([])
 const isLoading = ref(false)
-const loadError = ref('')
 const membershipSearch = ref('')
 
 const selectedMemberId = ref(null)
 const memberDetail = ref(null)
 const detailLoading = ref(false)
-const detailError = ref('')
 const selectedHistoryYear = ref('all')
 
 const monthNames = [
@@ -243,15 +333,26 @@ const filteredMembers = computed(() => {
   )
 })
 
+const outstandingMembers = computed(() => {
+  return members.value
+    .filter((member) => Number(member.outstanding?.outstanding_months || 0) > 0)
+    .sort((a, b) => Number(b.outstanding?.outstanding_amount || 0) - Number(a.outstanding?.outstanding_amount || 0))
+})
+
+const outstandingAsOf = computed(() => {
+  return outstandingMembers.value[0]?.outstanding?.as_of_date || ''
+})
+
 const totals = computed(() => {
   return members.value.reduce(
     (acc, member) => {
       acc.dependents += Number(member.dependents_count || 0)
       acc.payments += Number(member.payments?.total_paid || 0)
       acc.benefits += Number(member.benefits?.total_benefits || 0)
+      acc.outstanding += Number(member.outstanding?.outstanding_amount || 0)
       return acc
     },
-    { dependents: 0, payments: 0, benefits: 0 }
+    { dependents: 0, payments: 0, benefits: 0, outstanding: 0 }
   )
 })
 
@@ -313,9 +414,23 @@ const formatMonth = (monthNo) => {
   return monthNames[n - 1]
 }
 
+const formatMissingPeriods = (periods) => {
+  if (!Array.isArray(periods) || periods.length === 0) return '-'
+  const labels = periods.map((period) => period.label).filter(Boolean)
+  if (labels.length <= 4) return labels.join(', ')
+  return `${labels.slice(0, 4).join(', ')} +${labels.length - 4} more`
+}
+
+const statusClass = (status) => {
+  return {
+    'status-active': status === 'Active' || !status,
+    'status-inactive': status === 'Inactive',
+    'status-suspended': status === 'Suspended'
+  }
+}
+
 const loadReport = async () => {
   isLoading.value = true
-  loadError.value = ''
 
   try {
     const res = await fetch('/api/get_member_full_report.php')
@@ -332,11 +447,11 @@ const loadReport = async () => {
         }
       }
     } else {
-      loadError.value = data.message || 'Failed to load member report.'
+      alertError('Report error', data.message || 'Failed to load member report.')
     }
   } catch (error) {
     console.error('Error loading member full report:', error)
-    loadError.value = 'Network error while loading report data.'
+    alertError('Network error', 'Network error while loading report data.')
   } finally {
     isLoading.value = false
   }
@@ -345,7 +460,6 @@ const loadReport = async () => {
 const loadMemberDetail = async (memberId) => {
   selectedMemberId.value = memberId
   detailLoading.value = true
-  detailError.value = ''
   selectedHistoryYear.value = 'all'
 
   try {
@@ -358,22 +472,29 @@ const loadMemberDetail = async (memberId) => {
         dependents: Array.isArray(data.dependents) ? data.dependents : [],
         payments: Array.isArray(data.payments) ? data.payments : [],
         benefits: Array.isArray(data.benefits) ? data.benefits : [],
+        status_history: Array.isArray(data.status_history) ? data.status_history : [],
+        outstanding: data.outstanding || {
+          outstanding_months: 0,
+          outstanding_amount: 0,
+          missing_periods: []
+        },
         summary: data.summary || {
           dependents_count: 0,
           payments_count: 0,
           benefits_count: 0,
           total_paid: 0,
-          total_benefits: 0
+          total_benefits: 0,
+          status_changes_count: 0
         }
       }
     } else {
       memberDetail.value = null
-      detailError.value = data.message || 'Failed to load member detail report.'
+      alertError('Detail report error', data.message || 'Failed to load member detail report.')
     }
   } catch (error) {
     console.error('Error loading member detail report:', error)
     memberDetail.value = null
-    detailError.value = 'Network error while loading member detail report.'
+    alertError('Network error', 'Network error while loading member detail report.')
   } finally {
     detailLoading.value = false
   }
@@ -384,7 +505,10 @@ const printReport = () => {
 }
 
 const printDetailReport = () => {
-  if (!memberDetail.value) return
+  if (!memberDetail.value) {
+    alertWarning('No member selected', 'Select a member before printing the detailed report.')
+    return
+  }
   window.print()
 }
 
@@ -400,12 +524,17 @@ const buildExportRows = () => {
       nic: member.nic || '',
       contact_number: member.contact_number || '',
       city: member.city || '',
+      status: member.status || 'Active',
+      status_reason: member.status_reason || '',
       membership_date: member.membership_date || '',
       date_added: member.date_added || '',
       dependents_count: Number(member.dependents_count || 0),
       dependents: dependentNames,
       total_paid: Number(member.payments?.total_paid || 0).toFixed(2),
       total_benefits: Number(member.benefits?.total_benefits || 0).toFixed(2),
+      outstanding_months: Number(member.outstanding?.outstanding_months || 0),
+      outstanding_amount: Number(member.outstanding?.outstanding_amount || 0).toFixed(2),
+      missing_periods: formatMissingPeriods(member.outstanding?.missing_periods || []),
       last_payment_date: member.payments?.last_payment_date || '',
       last_benefit_date: member.benefits?.last_benefit_date || ''
     }
@@ -432,12 +561,17 @@ const exportCsv = () => {
     'NIC',
     'Contact',
     'City',
+    'Status',
+    'Status Reason',
     'Membership Date',
     'Date Added',
     'Dependents Count',
     'Dependents',
     'Total Paid',
     'Total Benefits',
+    'Outstanding Months',
+    'Outstanding Amount',
+    'Missing Periods',
     'Last Payment',
     'Last Benefit'
   ]
@@ -459,12 +593,17 @@ const exportCsv = () => {
         r.nic,
         r.contact_number,
         r.city,
+        r.status,
+        r.status_reason,
         r.membership_date,
         r.date_added,
         r.dependents_count,
         r.dependents,
         r.total_paid,
         r.total_benefits,
+        r.outstanding_months,
+        r.outstanding_amount,
+        r.missing_periods,
         r.last_payment_date,
         r.last_benefit_date
       ]
@@ -499,12 +638,17 @@ const exportExcel = () => {
         <td>${escapeHtml(r.nic)}</td>
         <td>${escapeHtml(r.contact_number)}</td>
         <td>${escapeHtml(r.city)}</td>
+        <td>${escapeHtml(r.status)}</td>
+        <td>${escapeHtml(r.status_reason)}</td>
         <td>${escapeHtml(r.membership_date)}</td>
         <td>${escapeHtml(r.date_added)}</td>
         <td>${escapeHtml(r.dependents_count)}</td>
         <td>${escapeHtml(r.dependents)}</td>
         <td>${escapeHtml(r.total_paid)}</td>
         <td>${escapeHtml(r.total_benefits)}</td>
+        <td>${escapeHtml(r.outstanding_months)}</td>
+        <td>${escapeHtml(r.outstanding_amount)}</td>
+        <td>${escapeHtml(r.missing_periods)}</td>
         <td>${escapeHtml(r.last_payment_date)}</td>
         <td>${escapeHtml(r.last_benefit_date)}</td>
       </tr>`
@@ -532,12 +676,17 @@ const exportExcel = () => {
               <th>NIC</th>
               <th>Contact</th>
               <th>City</th>
+              <th>Status</th>
+              <th>Status Reason</th>
               <th>Membership Date</th>
               <th>Date Added</th>
               <th>Dependents Count</th>
               <th>Dependents</th>
               <th>Total Paid</th>
               <th>Total Benefits</th>
+              <th>Outstanding Months</th>
+              <th>Outstanding Amount</th>
+              <th>Missing Periods</th>
               <th>Last Payment</th>
               <th>Last Benefit</th>
             </tr>
@@ -632,6 +781,23 @@ onMounted(() => {
 
 .lookup-panel {
   padding: 1rem;
+}
+
+.outstanding-panel {
+  padding: 1rem;
+}
+
+.panel-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 0.85rem;
+}
+
+.panel-heading h3 {
+  margin: 0;
+  color: var(--primary-color);
 }
 
 .lookup-results {
@@ -791,20 +957,40 @@ onMounted(() => {
   color: var(--primary-dark);
 }
 
-.alert {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.85rem 1rem;
-  border-radius: 10px;
-  font-weight: 500;
+.outstanding-summary {
+  padding: 0.75rem 0.85rem;
+  margin-bottom: 0.85rem;
+  border: 1px solid rgba(220, 53, 69, 0.18);
+  border-radius: 8px;
+  background: rgba(220, 53, 69, 0.06);
+  color: #7f1d1d;
+  font-size: 0.9rem;
 }
 
-.alert-error {
-  background: rgba(220, 53, 69, 0.1);
-  color: var(--error);
-  border: 1px solid rgba(220, 53, 69, 0.2);
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 76px;
+  padding: 0.25rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.status-active {
+  background: rgba(25, 135, 84, 0.12);
+  color: #126742;
+}
+
+.status-inactive {
+  background: rgba(108, 117, 125, 0.14);
+  color: #495057;
+}
+
+.status-suspended {
+  background: rgba(220, 53, 69, 0.12);
+  color: #b42332;
 }
 
 @media (max-width: 992px) {

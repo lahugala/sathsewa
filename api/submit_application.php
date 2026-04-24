@@ -1,5 +1,7 @@
 <?php
 require 'db.php';
+require 'schema.php';
+ensure_app_schema($pdo);
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
@@ -12,6 +14,16 @@ $input = json_decode($inputJSON, TRUE);
 if (isset($input['name'], $input['nic'], $input['address'], $input['city'], $input['contact_number'])) {
     $membership_number = isset($input['membership_number']) ? $input['membership_number'] : null;
     $membership_date = isset($input['membership_date']) && !empty($input['membership_date']) ? $input['membership_date'] : null;
+    $allowedStatuses = ['Active', 'Inactive', 'Suspended'];
+    $status = isset($input['status']) && in_array($input['status'], $allowedStatuses, true) ? $input['status'] : 'Active';
+    $statusReason = isset($input['status_reason']) ? trim((string)$input['status_reason']) : '';
+    if ($status === 'Active') {
+        $statusReason = null;
+    } elseif ($statusReason === '') {
+        echo json_encode(["success" => false, "message" => "Reason is required for {$status} members"]);
+        exit();
+    }
+
     try {
         $pdo->beginTransaction();
         
@@ -19,16 +31,36 @@ if (isset($input['name'], $input['nic'], $input['address'], $input['city'], $inp
 
         if ($isEdit) {
             $memberId = $input['id'];
-            $stmt = $pdo->prepare("UPDATE members SET name = ?, membership_number = ?, membership_date = ?, nic = ?, address = ?, city = ?, contact_number = ? WHERE id = ?");
-            $stmt->execute([$input['name'], $membership_number, $membership_date, $input['nic'], $input['address'], $input['city'], $input['contact_number'], $memberId]);
+            $currentStmt = $pdo->prepare("SELECT status, status_reason FROM members WHERE id = ? AND is_deleted = 0");
+            $currentStmt->execute([$memberId]);
+            $currentMember = $currentStmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$currentMember) {
+                throw new Exception('Member not found');
+            }
+
+            $oldStatus = $currentMember['status'] ?? 'Active';
+
+            $oldReason = $currentMember['status_reason'] ?? null;
+
+            $stmt = $pdo->prepare("UPDATE members SET name = ?, membership_number = ?, membership_date = ?, nic = ?, address = ?, city = ?, contact_number = ?, status = ?, status_reason = ? WHERE id = ?");
+            $stmt->execute([$input['name'], $membership_number, $membership_date, $input['nic'], $input['address'], $input['city'], $input['contact_number'], $status, $statusReason, $memberId]);
+
+            if ($oldStatus !== $status || ($status !== 'Active' && (string)$oldReason !== (string)$statusReason)) {
+                $historyStmt = $pdo->prepare("INSERT INTO member_status_history (member_id, old_status, new_status, reason) VALUES (?, ?, ?, ?)");
+                $historyStmt->execute([$memberId, $oldStatus, $status, $statusReason ?: 'Member profile update']);
+            }
             
             // Delete existing dependents
             $delDepStmt = $pdo->prepare("DELETE FROM dependents WHERE member_id = ?");
             $delDepStmt->execute([$memberId]);
         } else {
-            $stmt = $pdo->prepare("INSERT INTO members (name, membership_number, membership_date, nic, address, city, contact_number) VALUES (?, ?, ?, ?, ?, ?, ?)");
-            $stmt->execute([$input['name'], $membership_number, $membership_date, $input['nic'], $input['address'], $input['city'], $input['contact_number']]);
+            $stmt = $pdo->prepare("INSERT INTO members (name, membership_number, membership_date, nic, address, city, contact_number, status, status_reason) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt->execute([$input['name'], $membership_number, $membership_date, $input['nic'], $input['address'], $input['city'], $input['contact_number'], $status, $statusReason]);
             $memberId = $pdo->lastInsertId();
+
+            $historyStmt = $pdo->prepare("INSERT INTO member_status_history (member_id, old_status, new_status, reason) VALUES (?, NULL, ?, ?)");
+            $historyStmt->execute([$memberId, $status, $statusReason ?: 'Member created']);
         }
 
         if (isset($input['dependents']) && is_array($input['dependents'])) {
@@ -50,6 +82,9 @@ if (isset($input['name'], $input['nic'], $input['address'], $input['city'], $inp
         } else {
             echo json_encode(["success" => false, "message" => "Database error: " . $e->getMessage()]);
         }
+    } catch (\Exception $e) {
+        $pdo->rollBack();
+        echo json_encode(["success" => false, "message" => $e->getMessage()]);
     }
 } else {
     echo json_encode(["success" => false, "message" => "Required fields missing"]);

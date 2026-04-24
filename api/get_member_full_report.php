@@ -1,5 +1,8 @@
 <?php
 require 'db.php';
+require 'schema.php';
+require 'outstanding_helpers.php';
+ensure_app_schema($pdo);
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
@@ -7,7 +10,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 try {
-    $stmtMembers = $pdo->query("SELECT id, name, membership_number, membership_date, nic, city, contact_number, address, DATE_FORMAT(created_at, '%Y-%m-%d') as date_added FROM members WHERE is_deleted = 0 ORDER BY created_at DESC");
+    $stmtMembers = $pdo->query("SELECT id, name, membership_number, membership_date, nic, city, contact_number, address, status, status_reason, created_at, DATE_FORMAT(created_at, '%Y-%m-%d') as date_added FROM members WHERE is_deleted = 0 ORDER BY created_at DESC");
     $members = $stmtMembers->fetchAll(PDO::FETCH_ASSOC);
 
     if (empty($members)) {
@@ -66,6 +69,29 @@ try {
         ];
     }
 
+    $stmtPaymentMonths = $pdo->prepare("SELECT member_id, payment_year, payment_month, member_fee, share_capital, special_charges,
+            (COALESCE(member_fee,0) + COALESCE(share_capital,0) + COALESCE(special_charges,0)) AS total_amount
+        FROM payments
+        WHERE member_id IN ($placeholders)");
+    $stmtPaymentMonths->execute($memberIds);
+    $paymentMonthRows = $stmtPaymentMonths->fetchAll(PDO::FETCH_ASSOC);
+
+    $paymentMonthsMap = [];
+    foreach ($paymentMonthRows as $row) {
+        $memberId = (int)$row['member_id'];
+        if (!isset($paymentMonthsMap[$memberId])) {
+            $paymentMonthsMap[$memberId] = [];
+        }
+        $paymentMonthsMap[$memberId][] = [
+            'payment_year' => $row['payment_year'],
+            'payment_month' => $row['payment_month'],
+            'member_fee' => $row['member_fee'],
+            'share_capital' => $row['share_capital'],
+            'special_charges' => $row['special_charges'],
+            'total_amount' => $row['total_amount']
+        ];
+    }
+
     $stmtBenefits = $pdo->prepare("SELECT member_id,
             SUM(COALESCE(amount,0)) AS total_benefits,
             MAX(paid_date) AS last_benefit_date,
@@ -119,11 +145,14 @@ try {
             'city' => $member['city'],
             'contact_number' => $member['contact_number'],
             'address' => $member['address'],
+            'status' => $member['status'],
+            'status_reason' => $member['status_reason'],
             'date_added' => $member['date_added'],
             'dependents_count' => count($memberDependents),
             'dependents' => $memberDependents,
             'payments' => $paymentAgg,
-            'benefits' => $benefitAgg
+            'benefits' => $benefitAgg,
+            'outstanding' => calculate_outstanding_payments($member, $paymentMonthsMap[$id] ?? [])
         ];
     }
 

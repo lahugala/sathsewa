@@ -1,5 +1,8 @@
 <?php
 require 'db.php';
+require 'schema.php';
+require 'outstanding_helpers.php';
+ensure_app_schema($pdo);
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
@@ -17,7 +20,7 @@ if ($memberId <= 0) {
 }
 
 try {
-    $stmtMember = $pdo->prepare("SELECT id, name, membership_number, membership_date, nic, city, contact_number, address, DATE_FORMAT(created_at, '%Y-%m-%d') as date_added FROM members WHERE id = ? AND is_deleted = 0 LIMIT 1");
+    $stmtMember = $pdo->prepare("SELECT id, name, membership_number, membership_date, nic, city, contact_number, address, status, status_reason, created_at, DATE_FORMAT(created_at, '%Y-%m-%d') as date_added FROM members WHERE id = ? AND is_deleted = 0 LIMIT 1");
     $stmtMember->execute([$memberId]);
     $member = $stmtMember->fetch(PDO::FETCH_ASSOC);
 
@@ -41,12 +44,30 @@ try {
     $stmtPayments->execute([$memberId]);
     $payments = $stmtPayments->fetchAll(PDO::FETCH_ASSOC);
 
+    $paidMonths = array_map(function($payment) {
+        return [
+            'payment_year' => $payment['payment_year'],
+            'payment_month' => $payment['payment_month'],
+            'member_fee' => $payment['member_fee'],
+            'share_capital' => $payment['share_capital'],
+            'special_charges' => $payment['special_charges'],
+            'total_amount' => $payment['total_amount']
+        ];
+    }, $payments);
+
     $stmtBenefits = $pdo->prepare("SELECT paid_date, benefit_type, dependent_name, relationship, aid_nature, amount
         FROM member_benefits
         WHERE member_id = ?
         ORDER BY paid_date DESC, created_at DESC");
     $stmtBenefits->execute([$memberId]);
     $benefits = $stmtBenefits->fetchAll(PDO::FETCH_ASSOC);
+
+    $stmtStatusHistory = $pdo->prepare("SELECT old_status, new_status, reason, DATE_FORMAT(changed_at, '%Y-%m-%d %H:%i') as changed_at
+        FROM member_status_history
+        WHERE member_id = ?
+        ORDER BY changed_at DESC, id DESC");
+    $stmtStatusHistory->execute([$memberId]);
+    $statusHistory = $stmtStatusHistory->fetchAll(PDO::FETCH_ASSOC);
 
     $totalPaid = 0.0;
     foreach ($payments as $payment) {
@@ -64,12 +85,15 @@ try {
         'dependents' => $dependents,
         'payments' => $payments,
         'benefits' => $benefits,
+        'status_history' => $statusHistory,
+        'outstanding' => calculate_outstanding_payments($member, $paidMonths),
         'summary' => [
             'dependents_count' => count($dependents),
             'payments_count' => count($payments),
             'benefits_count' => count($benefits),
             'total_paid' => $totalPaid,
-            'total_benefits' => $totalBenefits
+            'total_benefits' => $totalBenefits,
+            'status_changes_count' => count($statusHistory)
         ]
     ]);
 
