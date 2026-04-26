@@ -308,9 +308,11 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import DashboardLayout from '../../components/DashboardLayout.vue'
 import { alertError, alertWarning } from '../../utils/alerts'
 
+const route = useRoute()
 const members = ref([])
 const isLoading = ref(false)
 const membershipSearch = ref('')
@@ -440,7 +442,7 @@ const loadReport = async () => {
       members.value = Array.isArray(data.members) ? data.members : []
 
       if (selectedMemberId.value) {
-        const stillExists = members.value.some((m) => m.id === selectedMemberId.value)
+        const stillExists = members.value.some((m) => String(m.id) === String(selectedMemberId.value))
         if (!stillExists) {
           selectedMemberId.value = null
           memberDetail.value = null
@@ -700,7 +702,12 @@ const exportExcel = () => {
 }
 
 onMounted(() => {
-  loadReport()
+  loadReport().then(() => {
+    const memberId = route.query.member_id
+    if (memberId) {
+      loadMemberDetail(memberId)
+    }
+  })
 })
 </script>
 

@@ -29,7 +29,7 @@
                   model-type="yyyy-MM-dd"
                   auto-apply
                   :clearable="false"
-                  :enable-time-picker="false"
+                  :time-config="dateOnlyPickerConfig"
                   placeholder="Select paid date"
                   teleport
                   class="date-picker"
@@ -142,6 +142,7 @@ const benefits = ref([])
 const dependents = ref([])
 const saving = ref(false)
 const selectedDependentKey = ref('')
+const dateOnlyPickerConfig = { enableTimePicker: false }
 
 const form = reactive({
   benefit_type: 'death_gratuity',
@@ -306,7 +307,19 @@ const deleteBenefit = async (id) => {
 .btn-close:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: 6px; }
 .modal-body { padding: 2rem; overflow-y: auto; }
 .section-title { font-size: 1.1rem; color: var(--primary-dark); border-bottom: 2px solid var(--primary-light); padding-bottom: 0.5rem; margin-bottom: 1rem; display: inline-block; }
-.date-picker :deep(.dp__input) { min-height: 48px; border: 1px solid #dee2e6; border-radius: 8px; font-family: inherit; }
+.date-picker :deep(.dp__input) {
+  min-height: 48px;
+  padding-left: 2.5rem;
+  padding-right: 2.5rem;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  font-family: inherit;
+}
+.date-picker :deep(.dp__input_icon),
+.date-picker :deep(.dp__clear_icon) {
+  top: 50%;
+  transform: translateY(-50%);
+}
 .date-picker :deep(.dp__input:focus) { border-color: var(--primary-light); box-shadow: var(--focus-ring); }
 .data-table { width: 100%; border-collapse: collapse; }
 .data-table th, .data-table td { padding: 0.75rem; text-align: left; border-bottom: 1px solid rgba(0,0,0,0.05); }

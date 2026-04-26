@@ -42,6 +42,9 @@
                 </td>
                 <td>{{ member.membership_date || member.date_added }}</td>
                 <td class="sticky-actions" style="white-space: nowrap;">
+                  <button class="btn btn-sm btn-outline" @click="openDetails(member.id)" style="margin-right: 0.25rem; padding: 0.4rem;" title="Member Details">
+                    <FileText size="16" />
+                  </button>
                   <button class="btn btn-sm btn-success" @click="openLedgerModal(member)" style="margin-right: 0.25rem; padding: 0.4rem;" title="Ledger">
                     <BookOpen size="16" />
                   </button>
@@ -90,13 +93,15 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import DashboardLayout from '../components/DashboardLayout.vue'
 import ApplicationModal from '../components/ApplicationModal.vue'
 import PaymentLedgerModal from '../components/PaymentLedgerModal.vue'
 import BenefitsModal from '../components/BenefitsModal.vue'
-import { BookOpen, Gift, Pencil, Trash2, UserPlus } from 'lucide-vue-next'
+import { BookOpen, FileText, Gift, Pencil, Trash2, UserPlus } from 'lucide-vue-next'
 import { alertError, alertSuccess, confirmWarning } from '../utils/alerts'
 
+const router = useRouter()
 const members = ref([])
 const loading = ref(true)
 const isModalOpen = ref(false)
@@ -153,6 +158,13 @@ const openAddModal = () => {
 const openEditModal = (id) => {
   editingId.value = id
   isModalOpen.value = true
+}
+
+const openDetails = (id) => {
+  router.push({
+    path: '/reports/members',
+    query: { member_id: id }
+  })
 }
 
 const closeModal = () => {

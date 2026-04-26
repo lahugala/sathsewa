@@ -51,7 +51,7 @@
                       model-type="yyyy-MM-dd"
                       auto-apply
                       :clearable="false"
-                      :enable-time-picker="false"
+                      :time-config="dateOnlyPickerConfig"
                       :min-date="memberMinDate"
                       :disabled="isBeforeMemberDateMonth(idx + 1)"
                       teleport
@@ -92,6 +92,7 @@ const emit = defineEmits(['close'])
 const currentYear = new Date().getFullYear()
 const selectedYear = ref(currentYear)
 const availableYears = Array.from({length: 15}, (_, i) => currentYear - 10 + i)
+const dateOnlyPickerConfig = { enableTimePicker: false }
 
 const monthsNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
 const monthsList = ref([])
@@ -291,11 +292,16 @@ const savePayment = async (monthNum, data) => {
 }
 .ledger-date-picker :deep(.dp__input) {
   min-height: 36px;
-  padding: 0.4rem;
+  padding: 0.4rem 2rem;
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 0.875rem;
   font-family: inherit;
+}
+.ledger-date-picker :deep(.dp__input_icon),
+.ledger-date-picker :deep(.dp__clear_icon) {
+  top: 50%;
+  transform: translateY(-50%);
 }
 .ledger-date-picker :deep(.dp__input:focus) {
   border-color: var(--primary-light);

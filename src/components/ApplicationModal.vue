@@ -37,7 +37,7 @@
                   v-model="form.membership_date"
                   model-type="yyyy-MM-dd"
                   auto-apply
-                  :enable-time-picker="false"
+                  :time-config="dateOnlyPickerConfig"
                   placeholder="Select membership date"
                   teleport
                   class="date-picker"
@@ -143,6 +143,7 @@ const emit = defineEmits(['close', 'success'])
 
 const loading = ref(false)
 const fetching = ref(false)
+const dateOnlyPickerConfig = { enableTimePicker: false }
 
 const form = reactive({
   name: '',
@@ -275,7 +276,19 @@ const submitForm = async () => {
 .modal-body { padding: 2rem; }
 .section-title { color: var(--primary-dark); font-size: 1.25rem; border-bottom: 2px solid var(--primary-light); display: inline-block; padding-bottom: 0.25rem; margin-bottom: 1.5rem; }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
-.date-picker :deep(.dp__input) { min-height: 48px; border: 1px solid #dee2e6; border-radius: 8px; font-family: inherit; }
+.date-picker :deep(.dp__input) {
+  min-height: 48px;
+  padding-left: 2.5rem;
+  padding-right: 2.5rem;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  font-family: inherit;
+}
+.date-picker :deep(.dp__input_icon),
+.date-picker :deep(.dp__clear_icon) {
+  top: 50%;
+  transform: translateY(-50%);
+}
 .date-picker :deep(.dp__input:focus) { border-color: var(--primary-light); box-shadow: var(--focus-ring); }
 @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; gap: 0; } }
 .divider { border: 0; height: 1px; background: var(--surface-border); margin: 2rem 0; }
