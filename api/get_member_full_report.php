@@ -2,6 +2,7 @@
 require 'db.php';
 require 'schema.php';
 require 'outstanding_helpers.php';
+require 'special_charge_helpers.php';
 ensure_app_schema($pdo);
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
@@ -75,6 +76,7 @@ try {
         WHERE member_id IN ($placeholders)");
     $stmtPaymentMonths->execute($memberIds);
     $paymentMonthRows = $stmtPaymentMonths->fetchAll(PDO::FETCH_ASSOC);
+    $specialCharges = fetch_special_charges($pdo);
 
     $paymentMonthsMap = [];
     foreach ($paymentMonthRows as $row) {
@@ -152,7 +154,7 @@ try {
             'dependents' => $memberDependents,
             'payments' => $paymentAgg,
             'benefits' => $benefitAgg,
-            'outstanding' => calculate_outstanding_payments($member, $paymentMonthsMap[$id] ?? [])
+            'outstanding' => calculate_outstanding_payments($member, $paymentMonthsMap[$id] ?? [], null, 100.00, $specialCharges)
         ];
     }
 

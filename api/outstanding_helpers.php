@@ -14,7 +14,7 @@ function normalize_month_start($dateValue) {
     }
 }
 
-function calculate_outstanding_payments($member, $paidMonths, $asOfDate = null, $monthlyFee = 100.00) {
+function calculate_outstanding_payments($member, $paidMonths, $asOfDate = null, $monthlyFee = 100.00, $specialCharges = []) {
     $today = $asOfDate ? new DateTime($asOfDate) : new DateTime();
     $asOf = clone $today;
     $asOf->modify('last day of previous month');
@@ -40,20 +40,13 @@ function calculate_outstanding_payments($member, $paidMonths, $asOfDate = null, 
         ];
     }
 
+    $specialChargeLookup = function_exists('build_special_charge_lookup')
+        ? build_special_charge_lookup($specialCharges)
+        : [];
+
     $paidLookup = [];
     foreach ($paidMonths as $payment) {
         if (!isset($payment['payment_year'], $payment['payment_month'])) {
-            continue;
-        }
-
-        $memberFee = (float)($payment['member_fee'] ?? 0);
-        $shareCapital = (float)($payment['share_capital'] ?? 0);
-        $specialCharges = (float)($payment['special_charges'] ?? 0);
-        $totalAmount = array_key_exists('total_amount', $payment)
-            ? (float)$payment['total_amount']
-            : ($memberFee + $shareCapital + $specialCharges);
-
-        if ($totalAmount <= 0) {
             continue;
         }
 
@@ -63,26 +56,63 @@ function calculate_outstanding_payments($member, $paidMonths, $asOfDate = null, 
         }
 
         $key = $period->format('Y-m');
-        $paidLookup[$key] = true;
+        $paidLookup[$key] = [
+            'member_fee' => (float)($payment['member_fee'] ?? 0),
+            'special_charges' => (float)($payment['special_charges'] ?? 0),
+            'share_capital' => (float)($payment['share_capital'] ?? 0)
+        ];
     }
 
     $missing = [];
     $expectedMonths = 0;
+    $paidMonthsCount = 0;
+    $outstandingAmount = 0.0;
     $cursor = clone $start;
     while ($cursor <= $asOf) {
         $expectedMonths++;
         $key = $cursor->format('Y-m');
-        if (!isset($paidLookup[$key])) {
+        $expectedSpecial = (float)($specialChargeLookup[$key]['amount'] ?? 0);
+        $expectedMemberFee = (float)$monthlyFee;
+        $paid = $paidLookup[$key] ?? [
+            'member_fee' => 0,
+            'special_charges' => 0,
+            'share_capital' => 0
+        ];
+        $memberFeeBalance = max(0, $expectedMemberFee - (float)$paid['member_fee']);
+        $specialBalance = max(0, $expectedSpecial - (float)$paid['special_charges']);
+        $periodOutstanding = round($memberFeeBalance + $specialBalance, 2);
+
+        if ($periodOutstanding > 0) {
             $missing[] = [
                 'year' => (int)$cursor->format('Y'),
                 'month' => (int)$cursor->format('n'),
-                'label' => $cursor->format('F Y')
+                'label' => $cursor->format('F Y'),
+                'expected_amount' => round($expectedMemberFee + $expectedSpecial, 2),
+                'expected_special_charges' => round($expectedSpecial, 2),
+                'paid_amount' => round((float)$paid['member_fee'] + (float)$paid['special_charges'], 2),
+                'outstanding_amount' => $periodOutstanding
             ];
+            $outstandingAmount += $periodOutstanding;
+        } else {
+            $paidMonthsCount++;
         }
         $cursor->modify('+1 month');
     }
 
-    $paidKeys = array_keys($paidLookup);
+    $paidKeys = [];
+    foreach ($paidLookup as $key => $payment) {
+        $period = normalize_month_start($key . '-01');
+        if (!$period) {
+            continue;
+        }
+
+        $expectedSpecial = (float)($specialChargeLookup[$key]['amount'] ?? 0);
+        $isPaid = (float)$payment['member_fee'] >= (float)$monthlyFee
+            && (float)$payment['special_charges'] >= $expectedSpecial;
+        if ($isPaid) {
+            $paidKeys[] = $key;
+        }
+    }
     sort($paidKeys);
     $lastPaid = !empty($paidKeys) ? end($paidKeys) : null;
 
@@ -90,9 +120,9 @@ function calculate_outstanding_payments($member, $paidMonths, $asOfDate = null, 
         'as_of_date' => $asOfDateLabel,
         'start_month' => $start->format('Y-m'),
         'expected_months' => $expectedMonths,
-        'paid_months' => count($paidLookup),
+        'paid_months' => $paidMonthsCount,
         'outstanding_months' => count($missing),
-        'outstanding_amount' => round(count($missing) * (float)$monthlyFee, 2),
+        'outstanding_amount' => round($outstandingAmount, 2),
         'missing_periods' => $missing,
         'last_paid_month' => $lastPaid
     ];

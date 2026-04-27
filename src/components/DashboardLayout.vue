@@ -27,6 +27,12 @@
             </span>
             Members
           </router-link>
+          <router-link to="/charges" class="nav-link" active-class="active">
+            <span class="nav-icon icon-charges">
+              <ReceiptText :size="17" />
+            </span>
+            Special Charges
+          </router-link>
 
           <button
             class="nav-link nav-link-toggle"
@@ -74,6 +80,7 @@ import {
   LayoutDashboard,
   Users,
   FileBarChart2,
+  ReceiptText,
   ChevronDown,
   ChevronRight,
   UserSquare2,
@@ -236,6 +243,10 @@ const logout = () => {
 
 .icon-reports {
   background: linear-gradient(135deg, #8e44ad, #c0392b);
+}
+
+.icon-charges {
+  background: linear-gradient(135deg, #0ea5e9, #14b8a6);
 }
 
 .nav-link.active .nav-icon,

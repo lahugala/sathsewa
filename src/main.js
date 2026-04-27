@@ -11,11 +11,13 @@ import '@vuepic/vue-datepicker/dist/main.css'
 import Dashboard from './views/Dashboard.vue'
 import MembersReport from './views/reports/MembersReport.vue'
 import FinancialReport from './views/reports/FinancialReport.vue'
+import SpecialCharges from './views/SpecialCharges.vue'
 
 const routes = [
   { path: '/', component: Login },
   { path: '/dashboard', component: Dashboard },
   { path: '/members', component: Members },
+  { path: '/charges', component: SpecialCharges },
   { path: '/reports/members', component: MembersReport },
   { path: '/reports/financial', component: FinancialReport }
 ]

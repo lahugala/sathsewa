@@ -418,7 +418,13 @@ const formatMonth = (monthNo) => {
 
 const formatMissingPeriods = (periods) => {
   if (!Array.isArray(periods) || periods.length === 0) return '-'
-  const labels = periods.map((period) => period.label).filter(Boolean)
+  const labels = periods.map((period) => {
+    if (!period.label) return ''
+    if (Number(period.outstanding_amount || 0) > 0) {
+      return `${period.label} (${formatCurrency(period.outstanding_amount)})`
+    }
+    return period.label
+  }).filter(Boolean)
   if (labels.length <= 4) return labels.join(', ')
   return `${labels.slice(0, 4).join(', ')} +${labels.length - 4} more`
 }

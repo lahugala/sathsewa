@@ -1,6 +1,7 @@
 <?php
 require 'db.php';
 require 'schema.php';
+require 'special_charge_helpers.php';
 ensure_app_schema($pdo);
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
@@ -16,7 +17,12 @@ if ($member_id) {
         $stmt = $pdo->prepare("SELECT * FROM payments WHERE member_id = ? AND payment_year = ? ORDER BY payment_month ASC");
         $stmt->execute([$member_id, $year]);
         $payments = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        echo json_encode(['success' => true, 'payments' => $payments]);
+        $specialCharges = fetch_special_charges($pdo, $year);
+        echo json_encode([
+            'success' => true,
+            'payments' => $payments,
+            'predefined_special_charges' => $specialCharges
+        ]);
     } catch (PDOException $e) {
         echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
     }

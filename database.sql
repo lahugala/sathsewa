@@ -57,6 +57,17 @@ CREATE TABLE IF NOT EXISTS payments (
     UNIQUE KEY unique_member_month (member_id, payment_year, payment_month)
 );
 
+CREATE TABLE IF NOT EXISTS monthly_special_charges (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    charge_year INT NOT NULL,
+    charge_month INT NOT NULL,
+    amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    description VARCHAR(255) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_charge_period (charge_year, charge_month)
+);
+
 CREATE TABLE IF NOT EXISTS member_benefits (
     id INT AUTO_INCREMENT PRIMARY KEY,
     member_id INT NOT NULL,

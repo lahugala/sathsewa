@@ -2,6 +2,7 @@
 require 'db.php';
 require 'schema.php';
 require 'outstanding_helpers.php';
+require 'special_charge_helpers.php';
 ensure_app_schema($pdo);
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
@@ -54,6 +55,7 @@ try {
             'total_amount' => $payment['total_amount']
         ];
     }, $payments);
+    $specialCharges = fetch_special_charges($pdo);
 
     $stmtBenefits = $pdo->prepare("SELECT paid_date, benefit_type, dependent_name, relationship, aid_nature, amount
         FROM member_benefits
@@ -86,7 +88,7 @@ try {
         'payments' => $payments,
         'benefits' => $benefits,
         'status_history' => $statusHistory,
-        'outstanding' => calculate_outstanding_payments($member, $paidMonths),
+        'outstanding' => calculate_outstanding_payments($member, $paidMonths, null, 100.00, $specialCharges),
         'summary' => [
             'dependents_count' => count($dependents),
             'payments_count' => count($payments),

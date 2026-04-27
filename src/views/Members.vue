@@ -88,20 +88,26 @@
       :member="selectedMember"
       @close="closeBenefitsModal"
     />
+
+    <!-- Full Screen Member Details Modal -->
+    <MemberDetailsModal
+      :show="isDetailsOpen"
+      :member-id="selectedDetailId"
+      @close="closeDetailsModal"
+    />
   </DashboardLayout>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import DashboardLayout from '../components/DashboardLayout.vue'
 import ApplicationModal from '../components/ApplicationModal.vue'
 import PaymentLedgerModal from '../components/PaymentLedgerModal.vue'
 import BenefitsModal from '../components/BenefitsModal.vue'
+import MemberDetailsModal from '../components/MemberDetailsModal.vue'
 import { BookOpen, FileText, Gift, Pencil, Trash2, UserPlus } from 'lucide-vue-next'
 import { alertError, alertSuccess, confirmWarning } from '../utils/alerts'
 
-const router = useRouter()
 const members = ref([])
 const loading = ref(true)
 const isModalOpen = ref(false)
@@ -109,6 +115,8 @@ const editingId = ref(null)
 const searchQuery = ref('')
 const isLedgerOpen = ref(false)
 const isBenefitsOpen = ref(false)
+const isDetailsOpen = ref(false)
+const selectedDetailId = ref(null)
 const selectedMember = ref(null)
 
 const fetchMembers = async () => {
@@ -161,10 +169,8 @@ const openEditModal = (id) => {
 }
 
 const openDetails = (id) => {
-  router.push({
-    path: '/reports/members',
-    query: { member_id: id }
-  })
+  selectedDetailId.value = id
+  isDetailsOpen.value = true
 }
 
 const closeModal = () => {
@@ -190,6 +196,11 @@ const openBenefitsModal = (member) => {
 const closeBenefitsModal = () => {
   isBenefitsOpen.value = false
   selectedMember.value = null
+}
+
+const closeDetailsModal = () => {
+  isDetailsOpen.value = false
+  selectedDetailId.value = null
 }
 
 const handleSuccess = (message) => {

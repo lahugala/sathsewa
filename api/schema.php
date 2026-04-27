@@ -28,6 +28,19 @@ function ensure_app_schema($pdo) {
     ");
 
     $pdo->exec("
+        CREATE TABLE IF NOT EXISTS monthly_special_charges (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            charge_year INT NOT NULL,
+            charge_month INT NOT NULL,
+            amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+            description VARCHAR(255) NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            UNIQUE KEY unique_charge_period (charge_year, charge_month)
+        )
+    ");
+
+    $pdo->exec("
         INSERT INTO member_status_history (member_id, old_status, new_status, reason)
         SELECT m.id, NULL, m.status, 'Initial status migration'
         FROM members m

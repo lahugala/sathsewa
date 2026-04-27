@@ -107,7 +107,18 @@
                 </div>
                 <div class="form-group">
                   <label class="form-label">Relationship</label>
-                  <input type="text" v-model="dep.relationship" class="form-control" required>
+                  <select v-model="dep.relationship" class="form-control" required>
+                    <option value="" disabled>Select relationship</option>
+                    <option
+                      v-if="dep.relationship && !relationshipOptions.includes(dep.relationship)"
+                      :value="dep.relationship"
+                    >
+                      {{ dep.relationship }}
+                    </option>
+                    <option v-for="relationship in relationshipOptions" :key="relationship" :value="relationship">
+                      {{ relationship }}
+                    </option>
+                  </select>
                 </div>
                 <div class="form-group">
                   <label class="form-label">Birth Year</label>
@@ -144,6 +155,34 @@ const emit = defineEmits(['close', 'success'])
 const loading = ref(false)
 const fetching = ref(false)
 const dateOnlyPickerConfig = { enableTimePicker: false }
+const relationshipOptions = [
+  'Father',
+  'Mother',
+  'Elder Brother',
+  'Younger Brother',
+  'Elder Sister',
+  'Younger Sister',
+  'Son',
+  'Daughter',
+  'Grandfather',
+  'Grandmother',
+  "Father's Elder Brother",
+  "Father's Younger Brother",
+  "Father's Sister",
+  "Father's Sister's Husband",
+  'Husband',
+  'Wife',
+  'Father-in-law',
+  'Mother-in-law',
+  'Brother-in-law',
+  'Sister-in-law',
+  'Son-in-law',
+  'Daughter-in-law',
+  "Mother's Elder Sister",
+  "Mother's Younger Sister",
+  "Mother's Brother",
+  "Mother's Brother's Wife"
+]
 
 const form = reactive({
   name: '',

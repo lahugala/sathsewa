@@ -28,6 +28,7 @@
                   <th>Member Fee</th>
                   <th>Share Capital</th>
                   <th>Special</th>
+                  <th>Due</th>
                   <th>Remarks</th>
                   <th>Action</th>
                 </tr>
@@ -60,7 +61,19 @@
                   </td>
                   <td><input type="number" v-model="m.data.member_fee" class="form-control form-control-sm" :disabled="isBeforeMemberDateMonth(idx + 1)"></td>
                   <td><input type="number" v-model="m.data.share_capital" class="form-control form-control-sm" :disabled="isBeforeMemberDateMonth(idx + 1)"></td>
-                  <td><input type="number" v-model="m.data.special_charges" class="form-control form-control-sm" :disabled="isBeforeMemberDateMonth(idx + 1)"></td>
+                  <td>
+                    <input type="number" v-model="m.data.special_charges" class="form-control form-control-sm" :disabled="isBeforeMemberDateMonth(idx + 1)">
+                    <div v-if="m.expected_special_charges > 0" class="field-note">
+                      Required: {{ formatCurrency(m.expected_special_charges) }}
+                    </div>
+                  </td>
+                  <td>
+                    <div class="due-cell">
+                      <strong>{{ formatCurrency(expectedTotal(m)) }}</strong>
+                      <span v-if="outstandingBalance(m) > 0">{{ formatCurrency(outstandingBalance(m)) }} due</span>
+                      <span v-else>Paid</span>
+                    </div>
+                  </td>
                   <td><input type="text" v-model="m.data.remarks" class="form-control form-control-sm" :disabled="isBeforeMemberDateMonth(idx + 1)"></td>
                   <td>
                     <button class="btn btn-sm btn-primary" @click="savePayment(idx + 1, m.data)" :disabled="m.saving || isBeforeMemberDateMonth(idx + 1)" style="padding: 0.4rem;" title="Save">
@@ -93,21 +106,37 @@ const currentYear = new Date().getFullYear()
 const selectedYear = ref(currentYear)
 const availableYears = Array.from({length: 15}, (_, i) => currentYear - 10 + i)
 const dateOnlyPickerConfig = { enableTimePicker: false }
+const monthlyMemberFee = 100
 
 const monthsNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
 const monthsList = ref([])
 
-const initMonths = () => {
+const formatCurrency = (value) => {
+  return Number(value || 0).toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  })
+}
+
+const chargesByMonth = (charges = []) => {
+  return charges.reduce((acc, charge) => {
+    acc[Number(charge.charge_month)] = Number(charge.amount || 0)
+    return acc
+  }, {})
+}
+
+const initMonths = (predefinedCharges = {}) => {
   monthsList.value = monthsNames.map((name, idx) => ({
     name,
     monthNum: idx + 1,
     saving: false,
     isComplete: false,
+    expected_special_charges: predefinedCharges[idx + 1] || 0,
     data: {
       paid_date: '',
-      member_fee: 100, // Default as per doc
+      member_fee: monthlyMemberFee,
       share_capital: 0,
-      special_charges: 0,
+      special_charges: predefinedCharges[idx + 1] || 0,
       remarks: ''
     }
   }))
@@ -137,36 +166,46 @@ const isPaidDateBeforeMemberDate = (paidDateValue) => {
   return paidDate < memberDate
 }
 
-const isPaymentComplete = (data) => {
-  const total =
-    Number(data.member_fee || 0) +
-    Number(data.share_capital || 0) +
-    Number(data.special_charges || 0)
+const expectedTotal = (month) => {
+  return monthlyMemberFee + Number(month.expected_special_charges || 0)
+}
 
-  return total > 0
+const outstandingBalance = (month) => {
+  const memberFeeBalance = Math.max(0, monthlyMemberFee - Number(month.data.member_fee || 0))
+  const specialBalance = Math.max(0, Number(month.expected_special_charges || 0) - Number(month.data.special_charges || 0))
+  return memberFeeBalance + specialBalance
+}
+
+const isPaymentComplete = (month) => {
+  return outstandingBalance(month) <= 0
 }
 
 const fetchPayments = async () => {
   if (!props.member?.id) return
-  initMonths() // Reset grid
   try {
     const res = await fetch(`/api/get_payments.php?member_id=${props.member.id}&year=${selectedYear.value}`)
     const data = await res.json()
     if (data.success && data.payments) {
+      initMonths(chargesByMonth(data.predefined_special_charges || []))
       data.payments.forEach(p => {
         const idx = p.payment_month - 1
-        monthsList.value[idx].data = {
-          paid_date: p.paid_date,
-          member_fee: parseFloat(p.member_fee),
-          share_capital: parseFloat(p.share_capital),
-          special_charges: parseFloat(p.special_charges),
-          remarks: p.remarks || ''
+        if (monthsList.value[idx]) {
+          monthsList.value[idx].data = {
+            paid_date: p.paid_date,
+            member_fee: parseFloat(p.member_fee),
+            share_capital: parseFloat(p.share_capital),
+            special_charges: parseFloat(p.special_charges),
+            remarks: p.remarks || ''
+          }
+          monthsList.value[idx].isComplete = isPaymentComplete(monthsList.value[idx])
         }
-        monthsList.value[idx].isComplete = isPaymentComplete(monthsList.value[idx].data)
       })
+    } else {
+      initMonths()
     }
   } catch (e) {
     console.error('Failed to load ledger', e)
+    initMonths()
   }
 }
 
@@ -213,7 +252,7 @@ const savePayment = async (monthNum, data) => {
     })
     const resData = await res.json()
     if (resData.success) {
-      monthsList.value[monthNum-1].isComplete = isPaymentComplete(data)
+      monthsList.value[monthNum-1].isComplete = isPaymentComplete(monthsList.value[monthNum-1])
       alertSuccess('Payment saved', `Saved ${monthsNames[monthNum-1]} successfully!`)
     } else {
       alertError('Save failed', resData.message || 'Failed to save payment.')
@@ -308,6 +347,26 @@ const savePayment = async (monthNum, data) => {
   box-shadow: var(--focus-ring);
 }
 .form-control-sm { padding: 0.4rem; font-size: 0.875rem; width: 100%; box-sizing: border-box; border: 1px solid #ddd; border-radius: 4px;}
+.field-note {
+  margin-top: 0.25rem;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+.due-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 96px;
+  font-size: 0.84rem;
+}
+.due-cell strong {
+  color: var(--text-main);
+}
+.due-cell span {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
 </style>
 
 

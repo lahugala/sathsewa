@@ -2,6 +2,7 @@
 require 'db.php';
 require 'schema.php';
 require 'outstanding_helpers.php';
+require 'special_charge_helpers.php';
 ensure_app_schema($pdo);
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
@@ -20,6 +21,7 @@ try {
             (COALESCE(member_fee,0) + COALESCE(share_capital,0) + COALESCE(special_charges,0)) AS total_amount
         FROM payments");
     $paymentRows = $stmtPayments->fetchAll(PDO::FETCH_ASSOC);
+    $specialCharges = fetch_special_charges($pdo);
 
     $paymentsMap = [];
     foreach ($paymentRows as $row) {
@@ -39,7 +41,7 @@ try {
 
     $outstandingMembers = [];
     foreach ($members as $member) {
-        $outstanding = calculate_outstanding_payments($member, $paymentsMap[(int)$member['id']] ?? []);
+        $outstanding = calculate_outstanding_payments($member, $paymentsMap[(int)$member['id']] ?? [], null, 100.00, $specialCharges);
         if ((int)$outstanding['outstanding_months'] > 0) {
             $outstandingMembers[] = [
                 'id' => (int)$member['id'],
