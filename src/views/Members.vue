@@ -277,15 +277,15 @@ onMounted(() => {
   z-index: 2;
   font-weight: 600;
   color: var(--primary-color);
-  background: #f8f1f1;
+  background: #eefaf7;
 }
 
 .data-table tbody tr:nth-child(even) {
-  background: rgba(37, 99, 235, 0.015);
+  background: rgba(20, 184, 166, 0.025);
 }
 
 .data-table tbody tr:hover {
-  background: rgba(37, 99, 235, 0.07);
+  background: rgba(20, 184, 166, 0.09);
 }
 
 .data-table th:first-child,
@@ -307,7 +307,7 @@ onMounted(() => {
 .data-table thead th:first-child,
 .data-table thead th:last-child {
   z-index: 4;
-  background: #f8f1f1;
+  background: #eefaf7;
 }
 
 .data-table tbody td:first-child,
@@ -317,12 +317,12 @@ onMounted(() => {
 
 .data-table tbody tr:nth-child(even) td:first-child,
 .data-table tbody tr:nth-child(even) td:last-child {
-  background: rgba(37, 99, 235, 0.015);
+  background: rgba(20, 184, 166, 0.025);
 }
 
 .data-table tbody tr:hover td:first-child,
 .data-table tbody tr:hover td:last-child {
-  background: rgba(37, 99, 235, 0.07);
+  background: rgba(20, 184, 166, 0.09);
 }
 
 .data-table.compact th,
@@ -354,7 +354,7 @@ onMounted(() => {
 
   .data-table thead th.sticky-actions {
     z-index: 4;
-    background: #f8f1f1;
+    background: #eefaf7;
   }
 
   .data-table tbody td.sticky-actions {
@@ -362,11 +362,11 @@ onMounted(() => {
   }
 
   .data-table tbody tr:nth-child(even) td.sticky-actions {
-    background: rgba(37, 99, 235, 0.015);
+    background: rgba(20, 184, 166, 0.025);
   }
 
   .data-table tbody tr:hover td.sticky-actions {
-    background: rgba(37, 99, 235, 0.07);
+    background: rgba(20, 184, 166, 0.09);
   }
 }
 

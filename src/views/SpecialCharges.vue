@@ -23,12 +23,12 @@
 
           <div class="form-group">
             <label class="form-label">Special Charge Amount</label>
-            <input type="number" v-model.number="form.amount" class="form-control" min="0" step="0.01" required placeholder="1500.00">
+            <input type="number" v-model.number="form.amount" class="form-control" min="0.01" step="0.01" required placeholder="1500.00">
           </div>
 
           <div class="form-group">
             <label class="form-label">Description</label>
-            <input type="text" v-model.trim="form.description" class="form-control" placeholder="Optional note">
+            <input type="text" v-model.trim="form.description" class="form-control" required placeholder="Reason for this charge">
           </div>
 
           <div class="form-actions">
@@ -87,7 +87,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import DashboardLayout from '../components/DashboardLayout.vue'
 import { Pencil, Save, Trash2 } from 'lucide-vue-next'
-import { alertError, alertSuccess, confirmWarning } from '../utils/alerts'
+import { alertError, alertSuccess, alertWarning, confirmWarning } from '../utils/alerts'
 import { apiFetch } from '../utils/api'
 
 const currentYear = new Date().getFullYear()
@@ -148,6 +148,21 @@ const fetchCharges = async () => {
 }
 
 const saveCharge = async () => {
+  const amount = Number(form.amount || 0)
+  const description = String(form.description || '').trim()
+
+  if (amount <= 0) {
+    alertWarning('Invalid amount', 'Special charge amount must be greater than 0.')
+    return
+  }
+
+  if (!description) {
+    alertWarning('Description required', 'Please enter a description for this special charge.')
+    return
+  }
+
+  form.amount = amount
+  form.description = description
   saving.value = true
   try {
     const res = await apiFetch('/api/save_special_charge.php', {
@@ -287,7 +302,7 @@ onMounted(() => {
 
 .data-table th {
   color: var(--primary-color);
-  background: #f6f9ff;
+  background: #eefaf7;
   font-weight: 600;
 }
 

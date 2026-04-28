@@ -278,7 +278,7 @@ const savePayment = async (monthNum, data) => {
 .table-responsive { max-height: 62vh; overflow: auto; border: 1px solid rgba(0,0,0,0.06); border-radius: 8px; }
 .data-table { width: 100%; border-collapse: collapse; }
 .data-table th, .data-table td { padding: 0.75rem; text-align: left; border-bottom: 1px solid rgba(0,0,0,0.05); }
-.data-table th { font-weight: 600; color: var(--primary-color); background: #f6f9ff; }
+.data-table th { font-weight: 600; color: var(--primary-color); background: #eefaf7; }
 .ledger-table thead th {
   position: sticky;
   top: 0;

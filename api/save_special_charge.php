@@ -17,8 +17,13 @@ $month = isset($input['charge_month']) ? (int)$input['charge_month'] : 0;
 $amount = isset($input['amount']) ? (float)$input['amount'] : -1;
 $description = trim($input['description'] ?? '');
 
-if ($year < 2000 || $year > 2100 || $month < 1 || $month > 12 || $amount < 0) {
-    echo json_encode(['success' => false, 'message' => 'Valid year, month, and amount are required']);
+if ($year < 2000 || $year > 2100 || $month < 1 || $month > 12 || $amount <= 0) {
+    echo json_encode(['success' => false, 'message' => 'Special charge amount must be greater than 0']);
+    exit();
+}
+
+if ($description === '') {
+    echo json_encode(['success' => false, 'message' => 'Description is required for special charges']);
     exit();
 }
 

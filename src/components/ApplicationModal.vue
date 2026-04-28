@@ -21,7 +21,17 @@
               
               <div class="form-group">
                 <label class="form-label">NIC</label>
-                <input type="text" v-model="form.nic" class="form-control" required placeholder="123456789V">
+                <input
+                  type="text"
+                  v-model="form.nic"
+                  class="form-control"
+                  required
+                  inputmode="text"
+                  maxlength="12"
+                  placeholder="123456789V or 200012345678"
+                  @input="formatNic"
+                >
+                <p class="field-help">Use 9 digits with optional V/X, or 12 digits.</p>
               </div>
             </div>
 
@@ -80,7 +90,17 @@
               
               <div class="form-group">
                 <label class="form-label">Contact Number</label>
-                <input type="tel" v-model="form.contact_number" class="form-control" required placeholder="0712345678">
+                <input
+                  type="tel"
+                  v-model="form.contact_number"
+                  class="form-control"
+                  required
+                  inputmode="numeric"
+                  maxlength="10"
+                  placeholder="0712345678"
+                  @input="formatContactNumber"
+                >
+                <p class="field-help">Enter exactly 10 digits.</p>
               </div>
             </div>
 
@@ -251,6 +271,24 @@ const removeDependent = (index) => {
   form.dependents.splice(index, 1)
 }
 
+const normalizeNic = (value) => String(value || '').replace(/[\s-]/g, '').toUpperCase()
+const normalizeContactNumber = (value) => String(value || '').replace(/\D/g, '').slice(0, 10)
+
+const isValidNic = (value) => {
+  const nic = normalizeNic(value)
+  return /^\d{9}[VX]?$/.test(nic) || /^\d{12}$/.test(nic)
+}
+
+const isValidContactNumber = (value) => /^\d{10}$/.test(normalizeContactNumber(value))
+
+const formatNic = () => {
+  form.nic = normalizeNic(form.nic).replace(/[^0-9VX]/g, '').slice(0, 12)
+}
+
+const formatContactNumber = () => {
+  form.contact_number = normalizeContactNumber(form.contact_number)
+}
+
 const closeModal = () => {
   resetForm()
   emit('close')
@@ -261,6 +299,21 @@ const submitForm = async () => {
 
   if (form.status !== 'Active' && !form.status_reason.trim()) {
     alertWarning('Reason required', `Reason is required for ${form.status} members.`)
+    loading.value = false
+    return
+  }
+
+  formatNic()
+  formatContactNumber()
+
+  if (!isValidNic(form.nic)) {
+    alertWarning('Invalid NIC', 'NIC must be 9 digits with optional V/X, or 12 digits.')
+    loading.value = false
+    return
+  }
+
+  if (!isValidContactNumber(form.contact_number)) {
+    alertWarning('Invalid contact number', 'Contact number must contain exactly 10 digits.')
     loading.value = false
     return
   }
@@ -330,6 +383,7 @@ const submitForm = async () => {
   transform: translateY(-50%);
 }
 .date-picker :deep(.dp__input:focus) { border-color: var(--primary-light); box-shadow: var(--focus-ring); }
+.field-help { margin-top: 0.35rem; color: var(--text-muted); font-size: 0.8rem; line-height: 1.25; }
 @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; gap: 0; } }
 .divider { border: 0; height: 1px; background: var(--surface-border); margin: 2rem 0; }
 .dependents-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }

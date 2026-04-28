@@ -762,7 +762,7 @@ const exportExcel = () => {
         <style>
           table { border-collapse: collapse; width: 100%; font-family: Arial, sans-serif; font-size: 12px; }
           th, td { border: 1px solid #dcdcdc; padding: 6px; text-align: left; }
-          th { background: #eef4ff; color: #1e40af; font-weight: 700; }
+          th { background: #eefaf7; color: #0f766e; font-weight: 700; }
           caption { text-align: left; font-size: 16px; font-weight: 700; margin-bottom: 8px; }
         </style>
       </head>
@@ -907,9 +907,9 @@ onMounted(() => {
   gap: 0.75rem;
   min-height: 48px;
   padding: 0.65rem 0.8rem;
-  border: 1px solid rgba(37, 99, 235, 0.16);
+  border: 1px solid rgba(20, 184, 166, 0.16);
   border-radius: 8px;
-  background: rgba(37, 99, 235, 0.04);
+  background: rgba(20, 184, 166, 0.06);
   color: var(--text-main);
   cursor: pointer;
   font-weight: 600;
@@ -919,7 +919,7 @@ onMounted(() => {
 .sub-report-tab:hover,
 .sub-report-tab.active {
   border-color: var(--primary-color);
-  background: rgba(37, 99, 235, 0.12);
+  background: rgba(20, 184, 166, 0.13);
   color: var(--primary-color);
 }
 
@@ -964,9 +964,9 @@ onMounted(() => {
   align-items: center;
   gap: 0.75rem;
   padding: 0.7rem 0.8rem;
-  border: 1px solid rgba(37, 99, 235, 0.14);
+  border: 1px solid rgba(20, 184, 166, 0.16);
   border-radius: 8px;
-  background: rgba(37, 99, 235, 0.04);
+  background: rgba(20, 184, 166, 0.06);
 }
 
 .lookup-item-main {
@@ -1005,19 +1005,19 @@ onMounted(() => {
   z-index: 2;
   color: var(--primary-color);
   font-weight: 600;
-  background: #eff6ff;
+  background: #eefaf7;
 }
 
 .report-table tbody tr:nth-child(even) {
-  background: rgba(37, 99, 235, 0.015);
+  background: rgba(20, 184, 166, 0.025);
 }
 
 .report-table tbody tr:hover {
-  background: rgba(37, 99, 235, 0.07);
+  background: rgba(20, 184, 166, 0.09);
 }
 
 .row-selected {
-  outline: 2px solid rgba(37, 99, 235, 0.35);
+  outline: 2px solid rgba(20, 184, 166, 0.35);
 }
 
 .row-subtext {
@@ -1062,9 +1062,9 @@ onMounted(() => {
 }
 
 .extract-sheet {
-  border: 1px solid rgba(37, 99, 235, 0.15);
+  border: 1px solid rgba(20, 184, 166, 0.16);
   border-radius: 10px;
-  background: rgba(37, 99, 235, 0.03);
+  background: rgba(20, 184, 166, 0.04);
   overflow: hidden;
 }
 
@@ -1072,8 +1072,8 @@ onMounted(() => {
   margin: 0;
   padding: 0.75rem 0.9rem;
   color: var(--primary-dark);
-  background: rgba(37, 99, 235, 0.08);
-  border-bottom: 1px solid rgba(37, 99, 235, 0.14);
+  background: rgba(20, 184, 166, 0.1);
+  border-bottom: 1px solid rgba(20, 184, 166, 0.16);
 }
 
 .extract-row {
@@ -1081,7 +1081,7 @@ onMounted(() => {
   grid-template-columns: minmax(170px, 220px) 1fr;
   gap: 0.75rem;
   padding: 0.6rem 0.9rem;
-  border-bottom: 1px solid rgba(37, 99, 235, 0.12);
+  border-bottom: 1px solid rgba(20, 184, 166, 0.14);
 }
 
 .extract-row:last-child {

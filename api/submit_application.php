@@ -14,6 +14,20 @@ $inputJSON = file_get_contents('php://input');
 $input = json_decode($inputJSON, TRUE);
 
 if (isset($input['name'], $input['nic'], $input['address'], $input['city'], $input['contact_number'])) {
+    $nic = strtoupper(preg_replace('/[\s-]+/', '', (string)$input['nic']));
+    $nic = preg_replace('/[^0-9VX]/', '', $nic);
+    $contactNumber = preg_replace('/\D+/', '', (string)$input['contact_number']);
+
+    if (!preg_match('/^(\d{9}[VX]?|\d{12})$/', $nic)) {
+        echo json_encode(["success" => false, "message" => "NIC must be 9 digits with optional V/X, or 12 digits"]);
+        exit();
+    }
+
+    if (!preg_match('/^\d{10}$/', $contactNumber)) {
+        echo json_encode(["success" => false, "message" => "Contact number must contain exactly 10 digits"]);
+        exit();
+    }
+
     $membership_number = isset($input['membership_number']) ? $input['membership_number'] : null;
     $membership_date = isset($input['membership_date']) && !empty($input['membership_date']) ? $input['membership_date'] : null;
     $allowedStatuses = ['Active', 'Inactive', 'Suspended'];
@@ -46,7 +60,7 @@ if (isset($input['name'], $input['nic'], $input['address'], $input['city'], $inp
             $oldReason = $currentMember['status_reason'] ?? null;
 
             $stmt = $pdo->prepare("UPDATE members SET name = ?, membership_number = ?, membership_date = ?, nic = ?, address = ?, city = ?, contact_number = ?, status = ?, status_reason = ? WHERE id = ?");
-            $stmt->execute([$input['name'], $membership_number, $membership_date, $input['nic'], $input['address'], $input['city'], $input['contact_number'], $status, $statusReason, $memberId]);
+            $stmt->execute([$input['name'], $membership_number, $membership_date, $nic, $input['address'], $input['city'], $contactNumber, $status, $statusReason, $memberId]);
 
             if ($oldStatus !== $status || ($status !== 'Active' && (string)$oldReason !== (string)$statusReason)) {
                 $historyStmt = $pdo->prepare("INSERT INTO member_status_history (member_id, old_status, new_status, reason) VALUES (?, ?, ?, ?)");
@@ -58,7 +72,7 @@ if (isset($input['name'], $input['nic'], $input['address'], $input['city'], $inp
             $delDepStmt->execute([$memberId]);
         } else {
             $stmt = $pdo->prepare("INSERT INTO members (name, membership_number, membership_date, nic, address, city, contact_number, status, status_reason) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmt->execute([$input['name'], $membership_number, $membership_date, $input['nic'], $input['address'], $input['city'], $input['contact_number'], $status, $statusReason]);
+            $stmt->execute([$input['name'], $membership_number, $membership_date, $nic, $input['address'], $input['city'], $contactNumber, $status, $statusReason]);
             $memberId = $pdo->lastInsertId();
 
             $historyStmt = $pdo->prepare("INSERT INTO member_status_history (member_id, old_status, new_status, reason) VALUES (?, NULL, ?, ?)");

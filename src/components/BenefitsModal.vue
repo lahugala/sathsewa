@@ -324,7 +324,7 @@ const deleteBenefit = async (id) => {
 .date-picker :deep(.dp__input:focus) { border-color: var(--primary-light); box-shadow: var(--focus-ring); }
 .data-table { width: 100%; border-collapse: collapse; }
 .data-table th, .data-table td { padding: 0.75rem; text-align: left; border-bottom: 1px solid rgba(0,0,0,0.05); }
-.data-table th { font-weight: 600; color: var(--primary-color); background: rgba(37, 99, 235, 0.03); }
+.data-table th { font-weight: 600; color: var(--primary-color); background: rgba(20, 184, 166, 0.06); }
 .field-help { margin-top: 0.4rem; color: var(--text-muted); font-size: 0.82rem; }
 .badge { padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; display: inline-block; }
 .badge-dark { background: #343a40; color: white; }

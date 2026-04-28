@@ -482,7 +482,7 @@ watch(
   align-items: center;
   gap: 0.45rem;
   padding: 0.62rem 0.9rem;
-  border: 1px solid rgba(37, 99, 235, 0.18);
+  border: 1px solid rgba(20, 184, 166, 0.18);
   border-radius: 8px;
   background: #fff;
   color: var(--text-main);
@@ -524,9 +524,9 @@ watch(
   flex-direction: column;
   gap: 0.25rem;
   padding: 0.75rem;
-  border: 1px solid rgba(37, 99, 235, 0.1);
+  border: 1px solid rgba(20, 184, 166, 0.14);
   border-radius: 8px;
-  background: rgba(37, 99, 235, 0.03);
+  background: rgba(20, 184, 166, 0.04);
 }
 
 .info-row.full {
@@ -562,7 +562,7 @@ watch(
   margin-top: 0.35rem;
   border-radius: 50%;
   background: var(--primary-color);
-  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+  box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.14);
 }
 
 .timeline-item p {
@@ -626,12 +626,12 @@ watch(
   top: 0;
   z-index: 1;
   color: var(--primary-color);
-  background: #eff6ff;
+  background: #eefaf7;
   font-weight: 700;
 }
 
 .detail-table tbody tr:nth-child(even) {
-  background: rgba(37, 99, 235, 0.02);
+  background: rgba(20, 184, 166, 0.025);
 }
 
 .status-badge {

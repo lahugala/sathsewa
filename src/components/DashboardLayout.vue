@@ -130,7 +130,8 @@ const logout = async () => {
   justify-content: space-between;
   align-items: center;
   padding: 1rem 2rem;
-  background: linear-gradient(135deg, #0f172a 0%, #14532d 100%);
+  background:
+    linear-gradient(135deg, rgba(5, 46, 39, 0.98) 0%, rgba(6, 78, 59, 0.98) 48%, rgba(15, 118, 110, 0.96) 100%);
   border-color: rgba(255, 255, 255, 0.12);
   border-radius: 0;
   border-left: none;
@@ -139,7 +140,7 @@ const logout = async () => {
   position: sticky;
   top: 0;
   z-index: 10;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.22);
+  box-shadow: 0 12px 34px rgba(15, 23, 42, 0.2);
 }
 
 .navbar-brand h2 {
@@ -189,6 +190,8 @@ const logout = async () => {
   padding: clamp(1rem, 2vw, 2rem) 1rem;
   display: flex;
   flex-direction: column;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(243, 247, 246, 0.9) 100%);
 }
 
 .sidebar-nav {
@@ -205,7 +208,8 @@ const logout = async () => {
   color: var(--text-main);
   border-radius: 8px;
   transition: var(--transition);
-  font-weight: 500;
+  font-weight: 650;
+  border: 1px solid transparent;
 }
 
 .nav-link-toggle {
@@ -216,13 +220,15 @@ const logout = async () => {
 }
 
 .nav-link:hover {
-  background-color: rgba(37, 99, 235, 0.05);
+  background-color: rgba(20, 184, 166, 0.09);
   color: var(--primary-color);
+  border-color: rgba(20, 184, 166, 0.16);
 }
 
 .nav-link.active {
-  background-color: var(--primary-color);
+  background: linear-gradient(135deg, var(--primary-dark), var(--primary-color));
   color: white;
+  box-shadow: 0 10px 24px rgba(15, 118, 110, 0.22);
 }
 
 .nav-icon {
@@ -238,19 +244,19 @@ const logout = async () => {
 }
 
 .icon-dashboard {
-  background: linear-gradient(135deg, #2f80ed, #56ccf2);
+  background: linear-gradient(135deg, #0f766e, #14b8a6);
 }
 
 .icon-members {
-  background: linear-gradient(135deg, #16a085, #2ecc71);
+  background: linear-gradient(135deg, #15803d, #84cc16);
 }
 
 .icon-reports {
-  background: linear-gradient(135deg, #8e44ad, #c0392b);
+  background: linear-gradient(135deg, #d97706, #ef4444);
 }
 
 .icon-charges {
-  background: linear-gradient(135deg, #0ea5e9, #14b8a6);
+  background: linear-gradient(135deg, #0e7490, #2dd4bf);
 }
 
 .nav-link.active .nav-icon,
@@ -289,12 +295,12 @@ const logout = async () => {
 
 .sub-nav-link:hover {
   color: var(--primary-color);
-  background-color: rgba(37, 99, 235, 0.05);
+  background-color: rgba(20, 184, 166, 0.08);
 }
 
 .sub-nav-link.active-sub {
   color: var(--primary-color);
-  background-color: rgba(37, 99, 235, 0.1);
+  background-color: rgba(20, 184, 166, 0.13);
   font-weight: 600;
 }
 
