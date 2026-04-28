@@ -130,6 +130,7 @@
 import { ref, reactive, watch } from 'vue'
 import { Trash2, X } from 'lucide-vue-next'
 import { alertError, alertSuccess, alertWarning, confirmWarning } from '../utils/alerts'
+import { apiFetch } from '../utils/api'
 
 const props = defineProps({
   show: Boolean,
@@ -171,7 +172,7 @@ const formatAmount = (value) => {
 const fetchBenefits = async () => {
   if (!props.member?.id) return
   try {
-    const res = await fetch(`/api/get_benefits.php?member_id=${props.member.id}`)
+    const res = await apiFetch(`/api/get_benefits.php?member_id=${props.member.id}`)
     const data = await res.json()
     if (data.success) {
       benefits.value = data.benefits
@@ -185,7 +186,7 @@ const fetchDependents = async () => {
   dependents.value = []
   if (!props.member?.id) return
   try {
-    const res = await fetch(`/api/get_member.php?id=${props.member.id}`)
+    const res = await apiFetch(`/api/get_member.php?id=${props.member.id}`)
     const data = await res.json()
     if (data.success) {
       dependents.value = Array.isArray(data.member?.dependents) ? data.member.dependents : []
@@ -249,7 +250,7 @@ const saveBenefit = async () => {
   }
 
   try {
-    const res = await fetch('/api/save_benefit.php', {
+    const res = await apiFetch('/api/save_benefit.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -278,7 +279,7 @@ const deleteBenefit = async (id) => {
 
   if (result.isConfirmed) {
     try {
-      const res = await fetch('/api/delete_benefit.php', {
+      const res = await apiFetch('/api/delete_benefit.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id })

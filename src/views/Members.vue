@@ -107,6 +107,7 @@ import BenefitsModal from '../components/BenefitsModal.vue'
 import MemberDetailsModal from '../components/MemberDetailsModal.vue'
 import { BookOpen, FileText, Gift, Pencil, Trash2, UserPlus } from 'lucide-vue-next'
 import { alertError, alertSuccess, confirmWarning } from '../utils/alerts'
+import { apiFetch } from '../utils/api'
 
 const members = ref([])
 const loading = ref(true)
@@ -122,7 +123,7 @@ const selectedMember = ref(null)
 const fetchMembers = async () => {
   loading.value = true
   try {
-    const res = await fetch('/api/get_members.php')
+    const res = await apiFetch('/api/get_members.php')
     const data = await res.json()
     if (data.success) {
       members.value = data.members
@@ -217,7 +218,7 @@ const deleteMember = async (id) => {
 
   if (result.isConfirmed) {
     try {
-      const res = await fetch('/api/delete_member.php', {
+      const res = await apiFetch('/api/delete_member.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id })

@@ -144,6 +144,7 @@
 import { ref, reactive, defineProps, defineEmits, watch } from 'vue'
 import { X } from 'lucide-vue-next'
 import { alertError, alertWarning } from '../utils/alerts'
+import { apiFetch } from '../utils/api'
 
 const props = defineProps({
   show: Boolean,
@@ -215,7 +216,7 @@ watch(() => props.show, async (newVal) => {
     if (props.editId) {
       fetching.value = true
       try {
-        const res = await fetch(`/api/get_member.php?id=${props.editId}`)
+        const res = await apiFetch(`/api/get_member.php?id=${props.editId}`)
         const data = await res.json()
         if (data.success) {
           Object.assign(form, data.member)
@@ -283,7 +284,7 @@ const submitForm = async () => {
   }
 
   try {
-    const response = await fetch('/api/submit_application.php', {
+    const response = await apiFetch('/api/submit_application.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)

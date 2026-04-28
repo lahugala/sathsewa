@@ -1,5 +1,7 @@
 <?php
 require 'db.php';
+require 'auth.php';
+require_auth();
 require 'schema.php';
 ensure_app_schema($pdo);
 

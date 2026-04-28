@@ -10,10 +10,10 @@
           <button class="btn btn-outline" type="button" :disabled="isLoading" @click="loadReport">
             {{ isLoading ? 'Refreshing...' : 'Refresh' }}
           </button>
-          <button class="btn btn-outline" type="button" :disabled="isLoading || filteredMembers.length === 0" @click="exportCsv">
+          <button class="btn btn-outline" type="button" :disabled="isLoading || activeSubReportMembers.length === 0" @click="exportCsv">
             Export CSV
           </button>
-          <button class="btn btn-outline" type="button" :disabled="isLoading || filteredMembers.length === 0" @click="exportExcel">
+          <button class="btn btn-outline" type="button" :disabled="isLoading || activeSubReportMembers.length === 0" @click="exportExcel">
             Export Excel
           </button>
           <button class="btn btn-outline" type="button" :disabled="!memberDetail" @click="printDetailReport">
@@ -87,18 +87,32 @@
         </div>
       </div>
 
-      <div class="glass-panel mb-4 outstanding-panel no-print-detail">
+      <div class="glass-panel mb-4 sub-report-panel no-print-detail">
         <div class="panel-heading">
           <div>
-            <h3>Outstanding Payment Members</h3>
-            <p class="row-subtext">Calculated through {{ outstandingAsOf || 'current date' }} from each member's membership date.</p>
+            <h3>{{ activeSubReportConfig.title }}</h3>
+            <p class="row-subtext">{{ activeSubReportConfig.description }}</p>
           </div>
         </div>
 
+        <div class="sub-report-tabs" aria-label="Member sub reports">
+          <button
+            v-for="report in subReports"
+            :key="report.id"
+            type="button"
+            class="sub-report-tab"
+            :class="{ active: activeSubReport === report.id }"
+            @click="activeSubReport = report.id"
+          >
+            <span>{{ report.label }}</span>
+            <strong>{{ report.count }}</strong>
+          </button>
+        </div>
+
         <div class="table-responsive">
-          <table class="data-table report-table compact" v-if="outstandingMembers.length > 0">
+          <table class="data-table report-table compact" v-if="activeSubReportMembers.length > 0">
             <thead>
-              <tr>
+              <tr v-if="activeSubReport === 'outstanding'">
                 <th>Membership No</th>
                 <th>Name</th>
                 <th>Status</th>
@@ -107,19 +121,40 @@
                 <th>Missing Periods</th>
                 <th>Action</th>
               </tr>
+              <tr v-else>
+                <th>Membership No</th>
+                <th>Name</th>
+                <th>NIC</th>
+                <th>City</th>
+                <th>Contact</th>
+                <th>Membership Date</th>
+                <th>Status Reason</th>
+                <th>Action</th>
+              </tr>
             </thead>
             <tbody>
-              <tr v-for="member in outstandingMembers" :key="member.id">
-                <td>{{ member.membership_number || '-' }}</td>
-                <td>{{ member.name }}</td>
-                <td>
-                  <span class="status-badge" :class="statusClass(member.status)">
-                    {{ member.status || 'Active' }}
-                  </span>
-                </td>
-                <td>{{ member.outstanding.outstanding_months }}</td>
-                <td>{{ formatCurrency(member.outstanding.outstanding_amount) }}</td>
-                <td>{{ formatMissingPeriods(member.outstanding.missing_periods) }}</td>
+              <tr v-for="member in activeSubReportMembers" :key="member.id">
+                <template v-if="activeSubReport === 'outstanding'">
+                  <td>{{ member.membership_number || '-' }}</td>
+                  <td>{{ member.name }}</td>
+                  <td>
+                    <span class="status-badge" :class="statusClass(member.status)">
+                      {{ member.status || 'Active' }}
+                    </span>
+                  </td>
+                  <td>{{ member.outstanding.outstanding_months }}</td>
+                  <td>{{ formatCurrency(member.outstanding.outstanding_amount) }}</td>
+                  <td>{{ formatMissingPeriods(member.outstanding.missing_periods) }}</td>
+                </template>
+                <template v-else>
+                  <td>{{ member.membership_number || '-' }}</td>
+                  <td>{{ member.name }}</td>
+                  <td>{{ member.nic || '-' }}</td>
+                  <td>{{ member.city || '-' }}</td>
+                  <td>{{ member.contact_number || '-' }}</td>
+                  <td>{{ member.membership_date || member.date_added || '-' }}</td>
+                  <td>{{ member.status_reason || '-' }}</td>
+                </template>
                 <td>
                   <button class="btn btn-sm btn-outline" type="button" @click="loadMemberDetail(member.id)">
                     View Detail
@@ -128,7 +163,7 @@
               </tr>
             </tbody>
           </table>
-          <p v-else class="text-center py-4">No outstanding payment members found.</p>
+          <p v-else class="text-center py-4">No members found for {{ activeSubReportConfig.title.toLowerCase() }}.</p>
         </div>
       </div>
 
@@ -311,11 +346,13 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import DashboardLayout from '../../components/DashboardLayout.vue'
 import { alertError, alertWarning } from '../../utils/alerts'
+import { apiFetch } from '../../utils/api'
 
 const route = useRoute()
 const members = ref([])
 const isLoading = ref(false)
 const membershipSearch = ref('')
+const activeSubReport = ref('outstanding')
 
 const selectedMemberId = ref(null)
 const memberDetail = ref(null)
@@ -343,6 +380,61 @@ const outstandingMembers = computed(() => {
 
 const outstandingAsOf = computed(() => {
   return outstandingMembers.value[0]?.outstanding?.as_of_date || ''
+})
+
+const normalizedStatus = (status) => String(status || 'Active').trim().toLowerCase()
+
+const membersByStatus = (status) => {
+  const target = String(status).toLowerCase()
+  return members.value
+    .filter((member) => normalizedStatus(member.status) === target)
+    .sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')))
+}
+
+const activeMembers = computed(() => membersByStatus('active'))
+const suspendedMembers = computed(() => membersByStatus('suspended'))
+const inactiveMembers = computed(() => membersByStatus('inactive'))
+
+const subReports = computed(() => [
+  {
+    id: 'outstanding',
+    label: 'Outstanding Members',
+    title: 'Outstanding Member List',
+    description: `Calculated through ${outstandingAsOf.value || 'current date'} from each member's membership date.`,
+    count: outstandingMembers.value.length
+  },
+  {
+    id: 'suspended',
+    label: 'Suspended Members',
+    title: 'Suspended Member List',
+    description: 'Members currently marked as suspended.',
+    count: suspendedMembers.value.length
+  },
+  {
+    id: 'inactive',
+    label: 'Inactive Members',
+    title: 'Inactive Member List',
+    description: 'Members currently marked as inactive.',
+    count: inactiveMembers.value.length
+  },
+  {
+    id: 'active',
+    label: 'Active Members',
+    title: 'Active Member List',
+    description: 'Members currently marked as active.',
+    count: activeMembers.value.length
+  }
+])
+
+const activeSubReportConfig = computed(() => {
+  return subReports.value.find((report) => report.id === activeSubReport.value) || subReports.value[0]
+})
+
+const activeSubReportMembers = computed(() => {
+  if (activeSubReport.value === 'suspended') return suspendedMembers.value
+  if (activeSubReport.value === 'inactive') return inactiveMembers.value
+  if (activeSubReport.value === 'active') return activeMembers.value
+  return outstandingMembers.value
 })
 
 const totals = computed(() => {
@@ -441,7 +533,7 @@ const loadReport = async () => {
   isLoading.value = true
 
   try {
-    const res = await fetch('/api/get_member_full_report.php')
+    const res = await apiFetch('/api/get_member_full_report.php')
     const data = await res.json()
 
     if (data.success) {
@@ -471,7 +563,7 @@ const loadMemberDetail = async (memberId) => {
   selectedHistoryYear.value = 'all'
 
   try {
-    const res = await fetch(`/api/get_member_detailed_report.php?member_id=${memberId}`)
+    const res = await apiFetch(`/api/get_member_detailed_report.php?member_id=${memberId}`)
     const data = await res.json()
 
     if (data.success) {
@@ -521,7 +613,7 @@ const printDetailReport = () => {
 }
 
 const buildExportRows = () => {
-  return filteredMembers.value.map((member) => {
+  return activeSubReportMembers.value.map((member) => {
     const dependentNames = Array.isArray(member.dependents)
       ? member.dependents.map((d) => d.name).filter(Boolean).join('; ')
       : ''
@@ -621,7 +713,7 @@ const exportCsv = () => {
   ]
 
   const content = `\uFEFF${lines.join('\n')}`
-  downloadFile(content, 'member_full_detailed_report.csv', 'text/csv;charset=utf-8;')
+  downloadFile(content, `${activeSubReport.value}_member_report.csv`, 'text/csv;charset=utf-8;')
 }
 
 const exportExcel = () => {
@@ -676,7 +768,7 @@ const exportExcel = () => {
       </head>
       <body>
         <table>
-          <caption>Member Full Detailed Report (${escapeHtml(dateLabel)})</caption>
+          <caption>${escapeHtml(activeSubReportConfig.value.title)} (${escapeHtml(dateLabel)})</caption>
           <thead>
             <tr>
               <th>Membership No</th>
@@ -704,7 +796,7 @@ const exportExcel = () => {
       </body>
     </html>`
 
-  downloadFile(tableHtml, 'member_full_detailed_report.xls', 'application/vnd.ms-excel')
+  downloadFile(tableHtml, `${activeSubReport.value}_member_report.xls`, 'application/vnd.ms-excel')
 }
 
 onMounted(() => {
@@ -796,8 +888,51 @@ onMounted(() => {
   padding: 1rem;
 }
 
-.outstanding-panel {
+.outstanding-panel,
+.sub-report-panel {
   padding: 1rem;
+}
+
+.sub-report-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(150px, 1fr));
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+
+.sub-report-tab {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 48px;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid rgba(37, 99, 235, 0.16);
+  border-radius: 8px;
+  background: rgba(37, 99, 235, 0.04);
+  color: var(--text-main);
+  cursor: pointer;
+  font-weight: 600;
+  transition: var(--transition);
+}
+
+.sub-report-tab:hover,
+.sub-report-tab.active {
+  border-color: var(--primary-color);
+  background: rgba(37, 99, 235, 0.12);
+  color: var(--primary-color);
+}
+
+.sub-report-tab strong {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--primary-dark);
+  font-size: 0.85rem;
 }
 
 .panel-heading {
@@ -1010,6 +1145,10 @@ onMounted(() => {
   .report-actions {
     grid-template-columns: repeat(3, minmax(110px, 1fr));
   }
+
+  .sub-report-tabs {
+    grid-template-columns: repeat(2, minmax(150px, 1fr));
+  }
 }
 
 @media (max-width: 768px) {
@@ -1055,6 +1194,10 @@ onMounted(() => {
 
 @media (max-width: 520px) {
   .report-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .sub-report-tabs {
     grid-template-columns: 1fr;
   }
 

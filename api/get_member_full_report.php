@@ -1,5 +1,7 @@
 <?php
 require 'db.php';
+require 'auth.php';
+require_auth();
 require 'schema.php';
 require 'outstanding_helpers.php';
 require 'special_charge_helpers.php';

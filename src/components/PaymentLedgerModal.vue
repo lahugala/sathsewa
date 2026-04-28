@@ -95,6 +95,7 @@
 import { computed, ref, watch } from 'vue'
 import { Save, X } from 'lucide-vue-next'
 import { alertError, alertSuccess, alertWarning } from '../utils/alerts'
+import { apiFetch } from '../utils/api'
 
 const props = defineProps({
   show: Boolean,
@@ -183,7 +184,7 @@ const isPaymentComplete = (month) => {
 const fetchPayments = async () => {
   if (!props.member?.id) return
   try {
-    const res = await fetch(`/api/get_payments.php?member_id=${props.member.id}&year=${selectedYear.value}`)
+    const res = await apiFetch(`/api/get_payments.php?member_id=${props.member.id}&year=${selectedYear.value}`)
     const data = await res.json()
     if (data.success && data.payments) {
       initMonths(chargesByMonth(data.predefined_special_charges || []))
@@ -245,7 +246,7 @@ const savePayment = async (monthNum, data) => {
   }
 
   try {
-    const res = await fetch('/api/save_payment.php', {
+    const res = await apiFetch('/api/save_payment.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)

@@ -1,5 +1,6 @@
 <?php
 require 'db.php';
+require 'auth.php';
 
 // Handle preflight requests
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
@@ -19,6 +20,13 @@ if (isset($input['username']) && isset($input['password'])) {
     $user = $stmt->fetch();
 
     if ($user && password_verify($password, $user['password_hash'])) {
+        start_app_session();
+        session_regenerate_id(true);
+        $_SESSION['user'] = [
+            "id" => $user['id'],
+            "username" => $user['username']
+        ];
+
         echo json_encode(["success" => true, "message" => "Login successful", "user" => ["id" => $user['id'], "username" => $user['username']]]);
     } else {
         echo json_encode(["success" => false, "message" => "Invalid credentials"]);

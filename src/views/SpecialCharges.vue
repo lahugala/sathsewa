@@ -88,6 +88,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import DashboardLayout from '../components/DashboardLayout.vue'
 import { Pencil, Save, Trash2 } from 'lucide-vue-next'
 import { alertError, alertSuccess, confirmWarning } from '../utils/alerts'
+import { apiFetch } from '../utils/api'
 
 const currentYear = new Date().getFullYear()
 const selectedYear = ref(currentYear)
@@ -128,7 +129,7 @@ const resetForm = () => {
 const fetchCharges = async () => {
   loading.value = true
   try {
-    const res = await fetch(`/api/get_special_charges.php?year=${selectedYear.value}`)
+    const res = await apiFetch(`/api/get_special_charges.php?year=${selectedYear.value}`)
     const data = await res.json()
     if (data.success) {
       charges.value = Array.isArray(data.charges) ? data.charges : []
@@ -149,7 +150,7 @@ const fetchCharges = async () => {
 const saveCharge = async () => {
   saving.value = true
   try {
-    const res = await fetch('/api/save_special_charge.php', {
+    const res = await apiFetch('/api/save_special_charge.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(form)
@@ -188,7 +189,7 @@ const deleteCharge = async (charge) => {
   if (!result.isConfirmed) return
 
   try {
-    const res = await fetch('/api/delete_special_charge.php', {
+      const res = await apiFetch('/api/delete_special_charge.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

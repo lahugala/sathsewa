@@ -89,6 +89,7 @@ const handleLogin = async () => {
   try {
     const response = await fetch('/api/login.php', {
       method: 'POST',
+      credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username: username.value, password: password.value })
     })

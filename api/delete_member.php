@@ -1,5 +1,7 @@
 <?php
 require 'db.php';
+require 'auth.php';
+require_auth();
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);

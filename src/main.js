@@ -12,19 +12,34 @@ import Dashboard from './views/Dashboard.vue'
 import MembersReport from './views/reports/MembersReport.vue'
 import FinancialReport from './views/reports/FinancialReport.vue'
 import SpecialCharges from './views/SpecialCharges.vue'
+import { checkSession } from './utils/api'
 
 const routes = [
-  { path: '/', component: Login },
-  { path: '/dashboard', component: Dashboard },
-  { path: '/members', component: Members },
-  { path: '/charges', component: SpecialCharges },
-  { path: '/reports/members', component: MembersReport },
-  { path: '/reports/financial', component: FinancialReport }
+  { path: '/', component: Login, meta: { guestOnly: true } },
+  { path: '/dashboard', component: Dashboard, meta: { requiresAuth: true } },
+  { path: '/members', component: Members, meta: { requiresAuth: true } },
+  { path: '/charges', component: SpecialCharges, meta: { requiresAuth: true } },
+  { path: '/reports/members', component: MembersReport, meta: { requiresAuth: true } },
+  { path: '/reports/financial', component: FinancialReport, meta: { requiresAuth: true } }
 ]
 
 const router = createRouter({
   history: createWebHistory(),
   routes
+})
+
+router.beforeEach(async (to) => {
+  const isAuthenticated = await checkSession()
+
+  if (to.meta.requiresAuth && !isAuthenticated) {
+    return '/'
+  }
+
+  if (to.meta.guestOnly && isAuthenticated) {
+    return '/dashboard'
+  }
+
+  return true
 })
 
 const app = createApp(App)

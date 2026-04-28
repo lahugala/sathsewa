@@ -86,6 +86,7 @@ import {
   UserSquare2,
   Wallet2
 } from 'lucide-vue-next'
+import { apiFetch } from '../utils/api'
 
 const router = useRouter()
 const route = useRoute()
@@ -107,9 +108,12 @@ const toggleReports = () => {
   reportsOpen.value = !reportsOpen.value
 }
 
-const logout = () => {
-  // Add logout logic here (e.g. clearing tokens)
-  router.push('/')
+const logout = async () => {
+  try {
+    await apiFetch('/api/logout.php', { method: 'POST' })
+  } finally {
+    router.push('/')
+  }
 }
 </script>
 

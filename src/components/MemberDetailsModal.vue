@@ -14,9 +14,6 @@
           </div>
         </div>
         <div class="topbar-actions">
-          <button class="icon-button" type="button" @click="printDetail" title="Print">
-            <Printer size="19" />
-          </button>
           <button class="icon-button" type="button" @click="$emit('close')" title="Close">
             <X size="20" />
           </button>
@@ -191,12 +188,12 @@ import { computed, ref, watch } from 'vue'
 import {
   CreditCard,
   Gift,
-  Printer,
   UserRound,
   Users,
   X
 } from 'lucide-vue-next'
-import { alertError, alertWarning } from '../utils/alerts'
+import { alertError } from '../utils/alerts'
+import { apiFetch } from '../utils/api'
 
 const props = defineProps({
   show: Boolean,
@@ -322,7 +319,7 @@ const loadDetail = async () => {
   selectedYear.value = 'all'
 
   try {
-    const res = await fetch(`/api/get_member_detailed_report.php?member_id=${props.memberId}`)
+    const res = await apiFetch(`/api/get_member_detailed_report.php?member_id=${props.memberId}`)
     const data = await res.json()
 
     if (data.success) {
@@ -335,15 +332,6 @@ const loadDetail = async () => {
   } finally {
     loading.value = false
   }
-}
-
-const printDetail = () => {
-  if (!detail.value) {
-    alertWarning('No member selected', 'Load a member before printing details.')
-    return
-  }
-
-  window.print()
 }
 
 watch(

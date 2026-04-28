@@ -96,6 +96,7 @@ import { ref, computed, onMounted } from 'vue'
 import { Users, UserPlus, BarChart3, TrendingUp, TrendingDown, Minus } from 'lucide-vue-next'
 import DashboardLayout from '../components/DashboardLayout.vue'
 import { alertError } from '../utils/alerts'
+import { apiFetch } from '../utils/api'
 
 const stats = ref({
   totalMembers: 0,
@@ -130,7 +131,7 @@ const trendClass = (trend) => {
 const loadDashboard = async () => {
   isLoading.value = true
   try {
-    const res = await fetch('/api/get_dashboard_stats.php')
+    const res = await apiFetch('/api/get_dashboard_stats.php')
     const data = await res.json()
     if (data.success) {
       stats.value = data.stats

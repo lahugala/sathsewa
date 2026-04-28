@@ -2,6 +2,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 :root {
+  --app-view-scale: 0.85;
   --primary-color: #2563eb;
   --primary-light: #3b82f6;
   --primary-dark: #1e40af;
@@ -30,6 +31,7 @@ body {
   font-family: 'Inter', sans-serif;
   background: linear-gradient(135deg, var(--background-start) 0%, var(--background-end) 100%);
   color: var(--text-main);
+  zoom: var(--app-view-scale);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
