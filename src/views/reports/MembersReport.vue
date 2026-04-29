@@ -133,7 +133,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="member in activeSubReportMembers" :key="member.id">
+              <tr v-for="member in paginatedSubReportMembers" :key="member.id">
                 <template v-if="activeSubReport === 'outstanding'">
                   <td data-label="Membership No">{{ member.membership_number || '-' }}</td>
                   <td data-label="Name">{{ member.name }}</td>
@@ -164,6 +164,28 @@
             </tbody>
           </table>
           <p v-else class="text-center py-4">No members found for {{ activeSubReportConfig.title.toLowerCase() }}.</p>
+        </div>
+        <div v-if="activeSubReportMembers.length > 0" class="pagination-bar">
+          <div class="pagination-summary">
+            Showing {{ paginationStart }}-{{ paginationEnd }} of {{ activeSubReportMembers.length }}
+          </div>
+          <div class="pagination-controls">
+            <label class="page-size">
+              Rows
+              <select v-model.number="pageSize">
+                <option :value="10">10</option>
+                <option :value="25">25</option>
+                <option :value="50">50</option>
+              </select>
+            </label>
+            <button class="page-btn" type="button" :disabled="currentPage === 1" @click="currentPage--">
+              Prev
+            </button>
+            <span class="page-count">{{ currentPage }} / {{ totalPages }}</span>
+            <button class="page-btn" type="button" :disabled="currentPage === totalPages" @click="currentPage++">
+              Next
+            </button>
+          </div>
         </div>
       </div>
 
@@ -342,7 +364,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import DashboardLayout from '../../components/DashboardLayout.vue'
 import { alertError, alertWarning } from '../../utils/alerts'
@@ -358,6 +380,8 @@ const selectedMemberId = ref(null)
 const memberDetail = ref(null)
 const detailLoading = ref(false)
 const selectedHistoryYear = ref('all')
+const currentPage = ref(1)
+const pageSize = ref(10)
 
 const monthNames = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -435,6 +459,33 @@ const activeSubReportMembers = computed(() => {
   if (activeSubReport.value === 'inactive') return inactiveMembers.value
   if (activeSubReport.value === 'active') return activeMembers.value
   return outstandingMembers.value
+})
+
+const totalPages = computed(() => Math.max(1, Math.ceil(activeSubReportMembers.value.length / pageSize.value)))
+
+const paginatedSubReportMembers = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  return activeSubReportMembers.value.slice(start, start + pageSize.value)
+})
+
+const paginationStart = computed(() => {
+  if (!activeSubReportMembers.value.length) return 0
+  return (currentPage.value - 1) * pageSize.value + 1
+})
+
+const paginationEnd = computed(() => Math.min(currentPage.value * pageSize.value, activeSubReportMembers.value.length))
+
+watch([activeSubReportMembers, pageSize], () => {
+  if (currentPage.value > totalPages.value) {
+    currentPage.value = totalPages.value
+  }
+  if (currentPage.value < 1) {
+    currentPage.value = 1
+  }
+})
+
+watch(activeSubReport, () => {
+  currentPage.value = 1
 })
 
 const totals = computed(() => {
@@ -984,6 +1035,66 @@ onMounted(() => {
   -webkit-overflow-scrolling: touch;
 }
 
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-top: 1rem;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.page-size {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-weight: 600;
+}
+
+.page-size select {
+  height: 2.15rem;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 8px;
+  padding: 0 0.55rem;
+  color: var(--text-color);
+  background: #fff;
+}
+
+.page-btn {
+  height: 2.15rem;
+  min-width: 4.2rem;
+  border: 1px solid rgba(20, 184, 166, 0.32);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--primary-dark);
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, opacity 0.2s ease;
+}
+
+.page-btn:not(:disabled):hover {
+  background: rgba(20, 184, 166, 0.1);
+}
+
+.page-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.page-count {
+  min-width: 3.5rem;
+  text-align: center;
+  color: var(--text-color);
+  font-weight: 700;
+}
+
 .report-table {
   width: 100%;
   border-collapse: collapse;
@@ -1189,6 +1300,16 @@ onMounted(() => {
   .history-filter .form-select {
     max-width: none;
     width: 100%;
+  }
+
+  .pagination-bar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .pagination-controls {
+    justify-content: space-between;
+    flex-wrap: wrap;
   }
 }
 

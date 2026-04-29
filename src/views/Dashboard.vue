@@ -332,14 +332,14 @@ const wideStatCards = computed(() => [
     value: formatCurrency(stats.value.finance.totalIncome),
     icon: Banknote,
     iconClass: 'icon-income',
-    caption: `${stats.value.finance.paymentRecords} payment record(s), ${formatCurrency(stats.value.finance.monthIncome)} this month`
+    caption: `${stats.value.finance.paymentRecords} payment record(s)`
   },
   {
     label: 'Outstanding',
     value: formatCurrency(stats.value.outstanding.totalAmount),
     icon: AlertTriangle,
     iconClass: 'icon-warning',
-    caption: `${stats.value.outstanding.membersCount} member(s), ${stats.value.outstanding.totalMonths} month(s) pending`
+    caption: `${stats.value.outstanding.membersCount} member(s)`
   }
 ])
 
@@ -563,7 +563,7 @@ onMounted(() => {
 
 .wide-stat-details strong {
   color: var(--primary-dark);
-  font-size: clamp(1.35rem, 2.25vw, 2.1rem);
+  font-size: clamp(1.15rem, 1.85vw, 1.75rem);
   line-height: 1;
   text-align: right;
   overflow-wrap: anywhere;
