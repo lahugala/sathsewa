@@ -49,7 +49,7 @@
           </div>
 
           <div class="table-responsive">
-            <table class="data-table compact" v-if="charges.length > 0">
+            <table class="data-table compact responsive-card-table" v-if="charges.length > 0">
               <thead>
                 <tr>
                   <th>Month</th>
@@ -60,10 +60,10 @@
               </thead>
               <tbody>
                 <tr v-for="charge in charges" :key="`${charge.charge_year}-${charge.charge_month}`">
-                  <td>{{ months[Number(charge.charge_month) - 1] }} {{ charge.charge_year }}</td>
-                  <td>{{ formatCurrency(charge.amount) }}</td>
-                  <td>{{ charge.description || '-' }}</td>
-                  <td class="actions-col">
+                  <td data-label="Month">{{ months[Number(charge.charge_month) - 1] }} {{ charge.charge_year }}</td>
+                  <td data-label="Amount">{{ formatCurrency(charge.amount) }}</td>
+                  <td data-label="Description">{{ charge.description || '-' }}</td>
+                  <td class="actions-col" data-label="Actions">
                     <button class="btn btn-sm btn-outline" type="button" @click="editCharge(charge)" title="Edit">
                       <Pencil size="16" />
                     </button>

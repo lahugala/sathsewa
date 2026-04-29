@@ -80,7 +80,7 @@
           <div class="history-section" style="flex: 2;">
             <h3 class="section-title">Payment History</h3>
             <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
-              <table class="data-table">
+              <table class="data-table responsive-card-table">
                 <thead style="position: sticky; top: 0; background: var(--surface); z-index: 1;">
                   <tr>
                     <th>Date</th>
@@ -92,13 +92,13 @@
                 </thead>
                 <tbody>
                   <tr v-for="b in benefits" :key="b.id">
-                    <td>{{ b.paid_date }}</td>
-                    <td>
+                    <td data-label="Date">{{ b.paid_date }}</td>
+                    <td data-label="Type">
                       <span class="badge" :class="b.benefit_type === 'death_gratuity' ? 'badge-dark' : 'badge-info'">
                         {{ b.benefit_type === 'death_gratuity' ? 'Death Gratuity' : 'Special Donation' }}
                       </span>
                     </td>
-                    <td>
+                    <td data-label="Details">
                       <div v-if="b.benefit_type === 'death_gratuity'">
                         <strong>{{ b.dependent_name }}</strong> ({{ b.relationship }})
                       </div>
@@ -106,8 +106,8 @@
                         {{ b.aid_nature }}
                       </div>
                     </td>
-                    <td style="font-weight: 600;">{{ formatAmount(b.amount) }}</td>
-                    <td>
+                    <td data-label="Amount" style="font-weight: 600;">{{ formatAmount(b.amount) }}</td>
+                    <td data-label="Action">
                       <button class="btn-remove" @click="deleteBenefit(b.id)" title="Delete Record" type="button">
                         <Trash2 size="18" />
                       </button>

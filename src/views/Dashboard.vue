@@ -123,7 +123,7 @@
           </div>
           <div class="table-responsive">
             <p v-if="isLoading" class="text-muted text-center py-4">Loading dashboard data...</p>
-            <table class="data-table" v-else-if="recentMembers.length > 0">
+            <table class="data-table responsive-card-table" v-else-if="recentMembers.length > 0">
               <thead>
                 <tr>
                   <th>Member</th>
@@ -135,14 +135,14 @@
               </thead>
               <tbody>
                 <tr v-for="member in recentMembers" :key="member.id">
-                  <td>
+                  <td data-label="Member">
                     <strong>{{ member.name }}</strong>
                     <span>{{ member.membership_number || 'No membership no' }}</span>
                   </td>
-                  <td>{{ member.nic }}</td>
-                  <td>{{ member.city }}</td>
-                  <td><span class="status-badge" :class="statusClass(member.status)">{{ member.status || 'Active' }}</span></td>
-                  <td>{{ member.date_added }}</td>
+                  <td data-label="NIC">{{ member.nic }}</td>
+                  <td data-label="City">{{ member.city }}</td>
+                  <td data-label="Status"><span class="status-badge" :class="statusClass(member.status)">{{ member.status || 'Active' }}</span></td>
+                  <td data-label="Date Added">{{ member.date_added }}</td>
                 </tr>
               </tbody>
             </table>

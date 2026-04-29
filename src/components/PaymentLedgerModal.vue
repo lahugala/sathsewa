@@ -20,7 +20,7 @@
           </div>
 
           <div class="table-responsive">
-            <table class="data-table ledger-table">
+            <table class="data-table ledger-table responsive-card-table">
               <thead>
                 <tr>
                   <th>Month</th>
@@ -39,14 +39,14 @@
                   :key="idx"
                   :class="{ 'month-complete': m.isComplete && !isBeforeMemberDateMonth(idx + 1), 'month-locked': isBeforeMemberDateMonth(idx + 1) }"
                 >
-                  <td>
+                  <td data-label="Month">
                     <div class="month-cell">
                       <span>{{ m.name }}</span>
                       <span v-if="isBeforeMemberDateMonth(idx + 1)" class="locked-badge">Before member date</span>
                       <span v-if="m.isComplete && !isBeforeMemberDateMonth(idx + 1)" class="complete-badge">Paid</span>
                     </div>
                   </td>
-                  <td>
+                  <td data-label="Paid Date">
                     <VueDatePicker
                       v-model="m.data.paid_date"
                       model-type="yyyy-MM-dd"
@@ -59,23 +59,23 @@
                       class="ledger-date-picker"
                     />
                   </td>
-                  <td><input type="number" v-model="m.data.member_fee" class="form-control form-control-sm" :disabled="isBeforeMemberDateMonth(idx + 1)"></td>
-                  <td><input type="number" v-model="m.data.share_capital" class="form-control form-control-sm" :disabled="isBeforeMemberDateMonth(idx + 1)"></td>
-                  <td>
+                  <td data-label="Member Fee"><input type="number" v-model="m.data.member_fee" class="form-control form-control-sm" :disabled="isBeforeMemberDateMonth(idx + 1)"></td>
+                  <td data-label="Share Capital"><input type="number" v-model="m.data.share_capital" class="form-control form-control-sm" :disabled="isBeforeMemberDateMonth(idx + 1)"></td>
+                  <td data-label="Special">
                     <input type="number" v-model="m.data.special_charges" class="form-control form-control-sm" :disabled="isBeforeMemberDateMonth(idx + 1)">
                     <div v-if="m.expected_special_charges > 0" class="field-note">
                       Required: {{ formatCurrency(m.expected_special_charges) }}
                     </div>
                   </td>
-                  <td>
+                  <td data-label="Due">
                     <div class="due-cell">
                       <strong>{{ formatCurrency(expectedTotal(m)) }}</strong>
                       <span v-if="outstandingBalance(m) > 0">{{ formatCurrency(outstandingBalance(m)) }} due</span>
                       <span v-else>Paid</span>
                     </div>
                   </td>
-                  <td><input type="text" v-model="m.data.remarks" class="form-control form-control-sm" :disabled="isBeforeMemberDateMonth(idx + 1)"></td>
-                  <td>
+                  <td data-label="Remarks"><input type="text" v-model="m.data.remarks" class="form-control form-control-sm" :disabled="isBeforeMemberDateMonth(idx + 1)"></td>
+                  <td data-label="Action">
                     <button class="btn btn-sm btn-primary" @click="savePayment(idx + 1, m.data)" :disabled="m.saving || isBeforeMemberDateMonth(idx + 1)" style="padding: 0.4rem;" title="Save">
                       <Save size="16" v-if="!m.saving" />
                       <span v-else>...</span>

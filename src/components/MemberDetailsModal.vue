@@ -89,7 +89,7 @@
           </section>
 
           <section v-if="activeTab === 'dependents'" class="table-panel">
-            <table class="detail-table" v-if="detail.dependents.length > 0">
+            <table class="detail-table responsive-card-table" v-if="detail.dependents.length > 0">
               <thead>
                 <tr>
                   <th>Name</th>
@@ -99,9 +99,9 @@
               </thead>
               <tbody>
                 <tr v-for="(dep, index) in detail.dependents" :key="index">
-                  <td>{{ dep.name }}</td>
-                  <td>{{ dep.relationship }}</td>
-                  <td>{{ dep.birth_year || '-' }}</td>
+                  <td data-label="Name">{{ dep.name }}</td>
+                  <td data-label="Relationship">{{ dep.relationship }}</td>
+                  <td data-label="Birth Year">{{ dep.birth_year || '-' }}</td>
                 </tr>
               </tbody>
             </table>
@@ -122,7 +122,7 @@
               </select>
             </div>
 
-            <table class="detail-table" v-if="filteredPayments.length > 0">
+            <table class="detail-table responsive-card-table" v-if="filteredPayments.length > 0">
               <thead>
                 <tr>
                   <th>Year</th>
@@ -137,14 +137,14 @@
               </thead>
               <tbody>
                 <tr v-for="(pay, index) in filteredPayments" :key="index">
-                  <td>{{ pay.payment_year }}</td>
-                  <td>{{ formatMonth(pay.payment_month) }}</td>
-                  <td>{{ pay.paid_date || '-' }}</td>
-                  <td>{{ formatCurrency(pay.member_fee || 0) }}</td>
-                  <td>{{ formatCurrency(pay.share_capital || 0) }}</td>
-                  <td>{{ formatCurrency(pay.special_charges || 0) }}</td>
-                  <td>{{ formatCurrency(pay.total_amount || 0) }}</td>
-                  <td>{{ pay.remarks || '-' }}</td>
+                  <td data-label="Year">{{ pay.payment_year }}</td>
+                  <td data-label="Month">{{ formatMonth(pay.payment_month) }}</td>
+                  <td data-label="Paid Date">{{ pay.paid_date || '-' }}</td>
+                  <td data-label="Member Fee">{{ formatCurrency(pay.member_fee || 0) }}</td>
+                  <td data-label="Share Capital">{{ formatCurrency(pay.share_capital || 0) }}</td>
+                  <td data-label="Special">{{ formatCurrency(pay.special_charges || 0) }}</td>
+                  <td data-label="Total">{{ formatCurrency(pay.total_amount || 0) }}</td>
+                  <td data-label="Remarks">{{ pay.remarks || '-' }}</td>
                 </tr>
               </tbody>
             </table>
@@ -152,7 +152,7 @@
           </section>
 
           <section v-if="activeTab === 'benefits'" class="table-panel">
-            <table class="detail-table" v-if="filteredBenefits.length > 0">
+            <table class="detail-table responsive-card-table" v-if="filteredBenefits.length > 0">
               <thead>
                 <tr>
                   <th>Paid Date</th>
@@ -163,15 +163,15 @@
               </thead>
               <tbody>
                 <tr v-for="(benefit, index) in filteredBenefits" :key="index">
-                  <td>{{ benefit.paid_date || '-' }}</td>
-                  <td>{{ benefit.benefit_type === 'death_gratuity' ? 'Death Gratuity' : 'Special Donation' }}</td>
-                  <td>
+                  <td data-label="Paid Date">{{ benefit.paid_date || '-' }}</td>
+                  <td data-label="Type">{{ benefit.benefit_type === 'death_gratuity' ? 'Death Gratuity' : 'Special Donation' }}</td>
+                  <td data-label="Details">
                     <span v-if="benefit.benefit_type === 'death_gratuity'">
                       {{ benefit.dependent_name || '-' }} ({{ benefit.relationship || '-' }})
                     </span>
                     <span v-else>{{ benefit.aid_nature || '-' }}</span>
                   </td>
-                  <td>{{ formatCurrency(benefit.amount || 0) }}</td>
+                  <td data-label="Amount">{{ formatCurrency(benefit.amount || 0) }}</td>
                 </tr>
               </tbody>
             </table>
@@ -687,6 +687,12 @@ watch(
 
   .summary-strip {
     gap: 0.75rem;
+  }
+
+  .table-panel {
+    max-height: 70vh;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
   }
 }
 

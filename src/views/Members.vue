@@ -14,7 +14,7 @@
           <input type="search" v-model="searchQuery" class="form-control" placeholder="Search by name, NIC or city...">
         </div>
         <div class="table-responsive" style="padding: 0 1rem 1rem 1rem;">
-          <table class="data-table compact" v-if="filteredMembers.length > 0">
+          <table class="data-table compact responsive-card-table" v-if="filteredMembers.length > 0">
             <thead>
               <tr>
                 <th>Mem. No</th>
@@ -29,19 +29,19 @@
             </thead>
             <tbody>
               <tr v-for="member in filteredMembers" :key="member.id">
-                <td>{{ member.membership_number || '-' }}</td>
-                <td>{{ member.name }}</td>
-                <td>{{ member.nic }}</td>
-                <td>{{ member.city }}</td>
-                <td>{{ member.contact_number }}</td>
-                <td>
+                <td data-label="Mem. No">{{ member.membership_number || '-' }}</td>
+                <td data-label="Name">{{ member.name }}</td>
+                <td data-label="NIC">{{ member.nic }}</td>
+                <td data-label="City">{{ member.city }}</td>
+                <td data-label="Contact">{{ member.contact_number }}</td>
+                <td data-label="Status">
                   <span class="status-badge" :class="statusClass(member.status)">
                     {{ member.status || 'Active' }}
                   </span>
                   <div v-if="member.status_reason" class="status-reason">{{ member.status_reason }}</div>
                 </td>
-                <td>{{ member.membership_date || member.date_added }}</td>
-                <td class="sticky-actions" style="white-space: nowrap;">
+                <td data-label="Mem. Date">{{ member.membership_date || member.date_added }}</td>
+                <td class="sticky-actions" data-label="Actions" style="white-space: nowrap;">
                   <button class="btn btn-sm btn-outline" @click="openDetails(member.id)" style="margin-right: 0.25rem; padding: 0.4rem;" title="Member Details">
                     <FileText size="16" />
                   </button>
@@ -367,6 +367,14 @@ onMounted(() => {
 
   .data-table tbody tr:hover td.sticky-actions {
     background: rgba(20, 184, 166, 0.09);
+  }
+}
+
+@media (max-width: 640px) {
+  .table-responsive {
+    max-height: 70vh;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
   }
 }
 

@@ -110,7 +110,7 @@
         </div>
 
         <div class="table-responsive">
-          <table class="data-table report-table compact" v-if="activeSubReportMembers.length > 0">
+          <table class="data-table report-table compact responsive-card-table" v-if="activeSubReportMembers.length > 0">
             <thead>
               <tr v-if="activeSubReport === 'outstanding'">
                 <th>Membership No</th>
@@ -135,27 +135,27 @@
             <tbody>
               <tr v-for="member in activeSubReportMembers" :key="member.id">
                 <template v-if="activeSubReport === 'outstanding'">
-                  <td>{{ member.membership_number || '-' }}</td>
-                  <td>{{ member.name }}</td>
-                  <td>
+                  <td data-label="Membership No">{{ member.membership_number || '-' }}</td>
+                  <td data-label="Name">{{ member.name }}</td>
+                  <td data-label="Status">
                     <span class="status-badge" :class="statusClass(member.status)">
                       {{ member.status || 'Active' }}
                     </span>
                   </td>
-                  <td>{{ member.outstanding.outstanding_months }}</td>
-                  <td>{{ formatCurrency(member.outstanding.outstanding_amount) }}</td>
-                  <td>{{ formatMissingPeriods(member.outstanding.missing_periods) }}</td>
+                  <td data-label="Missing Months">{{ member.outstanding.outstanding_months }}</td>
+                  <td data-label="Outstanding">{{ formatCurrency(member.outstanding.outstanding_amount) }}</td>
+                  <td data-label="Missing Periods">{{ formatMissingPeriods(member.outstanding.missing_periods) }}</td>
                 </template>
                 <template v-else>
-                  <td>{{ member.membership_number || '-' }}</td>
-                  <td>{{ member.name }}</td>
-                  <td>{{ member.nic || '-' }}</td>
-                  <td>{{ member.city || '-' }}</td>
-                  <td>{{ member.contact_number || '-' }}</td>
-                  <td>{{ member.membership_date || member.date_added || '-' }}</td>
-                  <td>{{ member.status_reason || '-' }}</td>
+                  <td data-label="Membership No">{{ member.membership_number || '-' }}</td>
+                  <td data-label="Name">{{ member.name }}</td>
+                  <td data-label="NIC">{{ member.nic || '-' }}</td>
+                  <td data-label="City">{{ member.city || '-' }}</td>
+                  <td data-label="Contact">{{ member.contact_number || '-' }}</td>
+                  <td data-label="Membership Date">{{ member.membership_date || member.date_added || '-' }}</td>
+                  <td data-label="Status Reason">{{ member.status_reason || '-' }}</td>
                 </template>
-                <td>
+                <td data-label="Action">
                   <button class="btn btn-sm btn-outline" type="button" @click="loadMemberDetail(member.id)">
                     View Detail
                   </button>
@@ -218,7 +218,7 @@
           <div class="detail-section mb-4">
             <h4>Status History</h4>
             <div class="table-responsive">
-              <table class="data-table report-table compact" v-if="memberDetail.status_history.length > 0">
+              <table class="data-table report-table compact responsive-card-table" v-if="memberDetail.status_history.length > 0">
                 <thead>
                   <tr>
                     <th>Changed At</th>
@@ -229,14 +229,14 @@
                 </thead>
                 <tbody>
                   <tr v-for="(item, index) in memberDetail.status_history" :key="index">
-                    <td>{{ item.changed_at }}</td>
-                    <td>{{ item.old_status || '-' }}</td>
-                    <td>
+                    <td data-label="Changed At">{{ item.changed_at }}</td>
+                    <td data-label="Previous">{{ item.old_status || '-' }}</td>
+                    <td data-label="New Status">
                       <span class="status-badge" :class="statusClass(item.new_status)">
                         {{ item.new_status }}
                       </span>
                     </td>
-                    <td>{{ item.reason || '-' }}</td>
+                    <td data-label="Reason">{{ item.reason || '-' }}</td>
                   </tr>
                 </tbody>
               </table>
@@ -247,7 +247,7 @@
           <div class="detail-section mb-4">
             <h4>Dependents</h4>
             <div class="table-responsive">
-              <table class="data-table report-table compact" v-if="memberDetail.dependents.length > 0">
+              <table class="data-table report-table compact responsive-card-table" v-if="memberDetail.dependents.length > 0">
                 <thead>
                   <tr>
                     <th>Name</th>
@@ -257,9 +257,9 @@
                 </thead>
                 <tbody>
                   <tr v-for="(dep, index) in memberDetail.dependents" :key="index">
-                    <td>{{ dep.name }}</td>
-                    <td>{{ dep.relationship }}</td>
-                    <td>{{ dep.birth_year || '-' }}</td>
+                    <td data-label="Name">{{ dep.name }}</td>
+                    <td data-label="Relationship">{{ dep.relationship }}</td>
+                    <td data-label="Birth Year">{{ dep.birth_year || '-' }}</td>
                   </tr>
                 </tbody>
               </table>
@@ -276,7 +276,7 @@
               <span>({{ formatMissingPeriods(memberDetail.outstanding.missing_periods) }})</span>
             </div>
             <div class="table-responsive">
-              <table class="data-table report-table compact" v-if="filteredDetailPayments.length > 0">
+              <table class="data-table report-table compact responsive-card-table" v-if="filteredDetailPayments.length > 0">
                 <thead>
                   <tr>
                     <th>Year</th>
@@ -291,14 +291,14 @@
                 </thead>
                 <tbody>
                   <tr v-for="(pay, index) in filteredDetailPayments" :key="index">
-                    <td>{{ pay.payment_year }}</td>
-                    <td>{{ formatMonth(pay.payment_month) }}</td>
-                    <td>{{ pay.paid_date || '-' }}</td>
-                    <td>{{ formatCurrency(pay.member_fee || 0) }}</td>
-                    <td>{{ formatCurrency(pay.share_capital || 0) }}</td>
-                    <td>{{ formatCurrency(pay.special_charges || 0) }}</td>
-                    <td>{{ formatCurrency(pay.total_amount || 0) }}</td>
-                    <td>{{ pay.remarks || '-' }}</td>
+                    <td data-label="Year">{{ pay.payment_year }}</td>
+                    <td data-label="Month">{{ formatMonth(pay.payment_month) }}</td>
+                    <td data-label="Paid Date">{{ pay.paid_date || '-' }}</td>
+                    <td data-label="Member Fee">{{ formatCurrency(pay.member_fee || 0) }}</td>
+                    <td data-label="Share Capital">{{ formatCurrency(pay.share_capital || 0) }}</td>
+                    <td data-label="Special Charges">{{ formatCurrency(pay.special_charges || 0) }}</td>
+                    <td data-label="Total">{{ formatCurrency(pay.total_amount || 0) }}</td>
+                    <td data-label="Remarks">{{ pay.remarks || '-' }}</td>
                   </tr>
                 </tbody>
               </table>
@@ -309,7 +309,7 @@
           <div class="detail-section">
             <h4>Benefit History</h4>
             <div class="table-responsive">
-              <table class="data-table report-table compact" v-if="filteredDetailBenefits.length > 0">
+              <table class="data-table report-table compact responsive-card-table" v-if="filteredDetailBenefits.length > 0">
                 <thead>
                   <tr>
                     <th>Paid Date</th>
@@ -320,15 +320,15 @@
                 </thead>
                 <tbody>
                   <tr v-for="(benefit, index) in filteredDetailBenefits" :key="index">
-                    <td>{{ benefit.paid_date || '-' }}</td>
-                    <td>{{ benefit.benefit_type === 'death_gratuity' ? 'Death Gratuity' : 'Special Donation' }}</td>
-                    <td>
+                    <td data-label="Paid Date">{{ benefit.paid_date || '-' }}</td>
+                    <td data-label="Type">{{ benefit.benefit_type === 'death_gratuity' ? 'Death Gratuity' : 'Special Donation' }}</td>
+                    <td data-label="Details">
                       <span v-if="benefit.benefit_type === 'death_gratuity'">
                         {{ benefit.dependent_name || '-' }} ({{ benefit.relationship || '-' }})
                       </span>
                       <span v-else>{{ benefit.aid_nature || '-' }}</span>
                     </td>
-                    <td>{{ formatCurrency(benefit.amount || 0) }}</td>
+                    <td data-label="Amount">{{ formatCurrency(benefit.amount || 0) }}</td>
                   </tr>
                 </tbody>
               </table>
