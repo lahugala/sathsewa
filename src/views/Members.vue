@@ -23,6 +23,7 @@
                 <th>City</th>
                 <th>Contact</th>
                 <th>Status</th>
+                <th>Loan</th>
                 <th>Mem. Date</th>
                 <th class="sticky-actions">Actions</th>
               </tr>
@@ -40,6 +41,23 @@
                   </span>
                   <div v-if="member.status_reason" class="status-reason">{{ member.status_reason }}</div>
                 </td>
+                <td data-label="Loan">
+                  <button
+                    v-if="hasLoanHistory(member)"
+                    type="button"
+                    class="loan-indicator"
+                    :class="loanClass(member)"
+                    @click="openLoansModal(member)"
+                    title="Open loans"
+                  >
+                    <HandCoins size="14" />
+                    <span>{{ loanLabel(member) }}</span>
+                  </button>
+                  <span v-else class="loan-none">No loan</span>
+                  <div v-if="hasLoanHistory(member)" class="loan-balance">
+                    {{ formatCurrency(loanBalance(member)) }} balance
+                  </div>
+                </td>
                 <td data-label="Mem. Date">{{ member.membership_date || member.date_added }}</td>
                 <td class="sticky-actions" data-label="Actions" style="white-space: nowrap;">
                   <button class="btn btn-sm btn-outline" @click="openDetails(member.id)" style="margin-right: 0.25rem; padding: 0.4rem;" title="Member Details">
@@ -50,6 +68,9 @@
                   </button>
                   <button class="btn btn-sm btn-outline" @click="openBenefitsModal(member)" style="margin-right: 0.25rem; padding: 0.4rem; background-color: var(--primary-dark); color: white; border-color: var(--primary-dark);" title="Benefits & Payouts">
                     <Gift size="16" />
+                  </button>
+                  <button class="btn btn-sm btn-outline" @click="openLoansModal(member)" style="margin-right: 0.25rem; padding: 0.4rem; background-color: #92400e; color: white; border-color: #92400e;" title="Loans">
+                    <HandCoins size="16" />
                   </button>
                   <button class="btn btn-sm btn-outline" @click="openEditModal(member.id)" style="margin-right: 0.25rem; padding: 0.4rem;" title="Edit">
                     <Pencil size="16" />
@@ -111,6 +132,13 @@
       @close="closeBenefitsModal"
     />
 
+    <!-- Loans Modal -->
+    <LoansModal
+      :show="isLoansOpen"
+      :member="selectedMember"
+      @close="closeLoansModal"
+    />
+
     <!-- Full Screen Member Details Modal -->
     <MemberDetailsModal
       :show="isDetailsOpen"
@@ -126,8 +154,9 @@ import DashboardLayout from '../components/DashboardLayout.vue'
 import ApplicationModal from '../components/ApplicationModal.vue'
 import PaymentLedgerModal from '../components/PaymentLedgerModal.vue'
 import BenefitsModal from '../components/BenefitsModal.vue'
+import LoansModal from '../components/LoansModal.vue'
 import MemberDetailsModal from '../components/MemberDetailsModal.vue'
-import { BookOpen, FileText, Gift, Pencil, Trash2, UserPlus } from 'lucide-vue-next'
+import { BookOpen, FileText, Gift, HandCoins, Pencil, Trash2, UserPlus } from 'lucide-vue-next'
 import { alertError, alertSuccess, confirmWarning } from '../utils/alerts'
 import { apiFetch } from '../utils/api'
 
@@ -138,6 +167,7 @@ const editingId = ref(null)
 const searchQuery = ref('')
 const isLedgerOpen = ref(false)
 const isBenefitsOpen = ref(false)
+const isLoansOpen = ref(false)
 const isDetailsOpen = ref(false)
 const selectedDetailId = ref(null)
 const selectedMember = ref(null)
@@ -171,6 +201,7 @@ const filteredMembers = computed(() => {
     m.city.toLowerCase().includes(query) ||
     String(m.status || '').toLowerCase().includes(query) ||
     String(m.status_reason || '').toLowerCase().includes(query) ||
+    loanSearchText(m).includes(query) ||
     (m.membership_number && m.membership_number.toLowerCase().includes(query))
   )
 })
@@ -208,6 +239,45 @@ const statusClass = (status) => {
     'status-inactive': status === 'Inactive',
     'status-suspended': status === 'Suspended'
   }
+}
+
+const formatCurrency = (value) => {
+  return new Intl.NumberFormat('en-LK', {
+    style: 'currency',
+    currency: 'LKR',
+    minimumFractionDigits: 2
+  }).format(Number(value || 0))
+}
+
+const loanSummary = (member) => member?.loans || {}
+
+const hasLoanHistory = (member) => Number(loanSummary(member).loans_count || 0) > 0
+
+const loanBalance = (member) => Number(loanSummary(member).total_balance || 0)
+
+const loanLabel = (member) => {
+  const summary = loanSummary(member)
+  if (!hasLoanHistory(member)) return 'No loan'
+  if (Number(summary.overdue_loans_count || 0) > 0) return 'Overdue'
+  if (loanBalance(member) > 0) return 'Active loan'
+  return 'Settled'
+}
+
+const loanClass = (member) => ({
+  'loan-overdue': loanLabel(member) === 'Overdue',
+  'loan-active': loanLabel(member) === 'Active loan',
+  'loan-settled': loanLabel(member) === 'Settled'
+})
+
+const loanSearchText = (member) => {
+  const summary = loanSummary(member)
+  return [
+    loanLabel(member),
+    hasLoanHistory(member) ? 'loan issued' : 'no loan',
+    Number(summary.active_loans_count || 0) > 0 ? 'active' : '',
+    Number(summary.overdue_loans_count || 0) > 0 ? 'overdue fine due' : '',
+    loanBalance(member) > 0 ? String(loanBalance(member)) : ''
+  ].join(' ').toLowerCase()
 }
 
 const openAddModal = () => {
@@ -248,6 +318,17 @@ const openBenefitsModal = (member) => {
 const closeBenefitsModal = () => {
   isBenefitsOpen.value = false
   selectedMember.value = null
+}
+
+const openLoansModal = (member) => {
+  selectedMember.value = member
+  isLoansOpen.value = true
+}
+
+const closeLoansModal = () => {
+  isLoansOpen.value = false
+  selectedMember.value = null
+  fetchMembers()
 }
 
 const closeDetailsModal = () => {
@@ -532,6 +613,63 @@ onMounted(() => {
 
 .status-reason {
   max-width: 180px;
+  margin-top: 0.25rem;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  line-height: 1.25;
+  white-space: normal;
+}
+
+.loan-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  min-width: 98px;
+  min-height: 28px;
+  padding: 0.25rem 0.55rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 0.74rem;
+  font-weight: 750;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.loan-indicator:hover {
+  filter: brightness(0.96);
+}
+
+.loan-active {
+  background: rgba(20, 184, 166, 0.13);
+  border-color: rgba(20, 184, 166, 0.28);
+  color: var(--primary-dark);
+}
+
+.loan-overdue {
+  background: rgba(220, 53, 69, 0.13);
+  border-color: rgba(220, 53, 69, 0.26);
+  color: #b42332;
+}
+
+.loan-settled {
+  background: rgba(25, 135, 84, 0.13);
+  border-color: rgba(25, 135, 84, 0.24);
+  color: #126742;
+}
+
+.loan-none {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+
+.loan-balance {
+  max-width: 150px;
   margin-top: 0.25rem;
   color: var(--text-muted);
   font-size: 0.72rem;

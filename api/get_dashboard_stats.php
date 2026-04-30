@@ -131,10 +131,12 @@ try {
     $benefitsRaw = $stmtBenefits->fetch(PDO::FETCH_ASSOC);
 
     $stmtCurrentCharge = $pdo->query("
-        SELECT amount, description
+        SELECT COALESCE(SUM(amount), 0) AS amount,
+               GROUP_CONCAT(description ORDER BY id SEPARATOR '; ') AS description
         FROM monthly_special_charges
-        WHERE charge_year = YEAR(CURDATE()) AND charge_month = MONTH(CURDATE())
-        LIMIT 1
+        WHERE charge_year = YEAR(CURDATE())
+          AND charge_month = MONTH(CURDATE())
+          AND charge_scope = 'all'
     ");
     $currentCharge = $stmtCurrentCharge->fetch(PDO::FETCH_ASSOC) ?: null;
 
@@ -232,7 +234,7 @@ try {
                 'totalAmount' => round($totalOutstandingAmount, 2),
                 'asOfDate' => $outstandingAsOf
             ],
-            'currentSpecialCharge' => $currentCharge ? [
+            'currentSpecialCharge' => $currentCharge && (float)$currentCharge['amount'] > 0 ? [
                 'amount' => (float)$currentCharge['amount'],
                 'description' => $currentCharge['description']
             ] : null

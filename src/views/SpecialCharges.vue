@@ -7,7 +7,7 @@
 
       <div class="charges-layout">
         <form class="glass-panel charge-form" @submit.prevent="saveCharge">
-          <h3>{{ editing ? 'Edit Monthly Charge' : 'Add Monthly Charge' }}</h3>
+          <h3>{{ editing ? 'Edit Special Charge' : 'Add Special Charge' }}</h3>
           <div class="form-grid">
             <div class="form-group">
               <label class="form-label">Year</label>
@@ -22,6 +22,20 @@
           </div>
 
           <div class="form-group">
+            <label class="form-label">Applies To</label>
+            <div class="scope-toggle">
+              <label>
+                <input type="radio" v-model="form.charge_scope" value="all">
+                All Members
+              </label>
+              <label>
+                <input type="radio" v-model="form.charge_scope" value="targeted">
+                Target Members
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group">
             <label class="form-label">Special Charge Amount</label>
             <input type="number" v-model.number="form.amount" class="form-control" min="0.01" step="0.01" required placeholder="1500.00">
           </div>
@@ -29,6 +43,22 @@
           <div class="form-group">
             <label class="form-label">Description</label>
             <input type="text" v-model.trim="form.description" class="form-control" required placeholder="Reason for this charge">
+          </div>
+
+          <div v-if="form.charge_scope === 'targeted'" class="form-group">
+            <label class="form-label">Target Members</label>
+            <input type="search" v-model="memberSearch" class="form-control" placeholder="Search by name, membership no, NIC or city">
+            <div class="member-picker">
+              <label v-for="member in filteredMembers" :key="member.id" class="member-option">
+                <input type="checkbox" :value="member.id" v-model="form.member_ids">
+                <span>
+                  <strong>{{ member.name }}</strong>
+                  <small>{{ member.membership_number || '-' }} | {{ member.nic }} | {{ member.city }}</small>
+                </span>
+              </label>
+              <p v-if="filteredMembers.length === 0" class="text-muted py-4 text-center">No members found.</p>
+            </div>
+            <p class="field-help">{{ form.member_ids.length }} member(s) selected</p>
           </div>
 
           <div class="form-actions">
@@ -54,14 +84,23 @@
                 <tr>
                   <th>Month</th>
                   <th>Amount</th>
+                  <th>Applies To</th>
                   <th>Description</th>
                   <th class="actions-col">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="charge in charges" :key="`${charge.charge_year}-${charge.charge_month}`">
+                <tr v-for="charge in charges" :key="charge.id">
                   <td data-label="Month">{{ months[Number(charge.charge_month) - 1] }} {{ charge.charge_year }}</td>
                   <td data-label="Amount">{{ formatCurrency(charge.amount) }}</td>
+                  <td data-label="Applies To">
+                    <span class="scope-badge" :class="charge.charge_scope === 'targeted' ? 'scope-targeted' : 'scope-all'">
+                      {{ charge.charge_scope === 'targeted' ? `${charge.targets?.length || 0} target member(s)` : 'All members' }}
+                    </span>
+                    <div v-if="charge.charge_scope === 'targeted'" class="target-list">
+                      {{ targetNames(charge.targets) }}
+                    </div>
+                  </td>
                   <td data-label="Description">{{ charge.description || '-' }}</td>
                   <td class="actions-col" data-label="Actions">
                     <button class="btn btn-sm btn-outline" type="button" @click="editCharge(charge)" title="Edit">
@@ -84,7 +123,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import DashboardLayout from '../components/DashboardLayout.vue'
 import { Pencil, Save, Trash2 } from 'lucide-vue-next'
 import { alertError, alertSuccess, alertWarning, confirmWarning } from '../utils/alerts'
@@ -96,19 +135,37 @@ const availableYears = Array.from({ length: 15 }, (_, i) => currentYear - 5 + i)
 const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
 const charges = ref([])
+const members = ref([])
 const loading = ref(false)
 const saving = ref(false)
 const editing = ref(false)
+const memberSearch = ref('')
 
 const form = reactive({
+  id: null,
   charge_year: currentYear,
   charge_month: new Date().getMonth() + 1,
   amount: 0,
-  description: ''
+  charge_scope: 'all',
+  description: '',
+  member_ids: []
 })
 
 const sortedCharges = computed(() => {
   return [...charges.value].sort((a, b) => Number(a.charge_month) - Number(b.charge_month))
+})
+
+const filteredMembers = computed(() => {
+  const query = memberSearch.value.trim().toLowerCase()
+  const list = members.value
+  if (!query) return list.slice(0, 80)
+
+  return list.filter((member) =>
+    String(member.name || '').toLowerCase().includes(query) ||
+    String(member.membership_number || '').toLowerCase().includes(query) ||
+    String(member.nic || '').toLowerCase().includes(query) ||
+    String(member.city || '').toLowerCase().includes(query)
+  ).slice(0, 80)
 })
 
 const formatCurrency = (value) => {
@@ -120,10 +177,26 @@ const formatCurrency = (value) => {
 
 const resetForm = () => {
   editing.value = false
+  form.id = null
   form.charge_year = selectedYear.value
   form.charge_month = new Date().getMonth() + 1
   form.amount = 0
+  form.charge_scope = 'all'
   form.description = ''
+  form.member_ids = []
+  memberSearch.value = ''
+}
+
+const fetchMembers = async () => {
+  try {
+    const res = await apiFetch('/api/get_members.php')
+    const data = await res.json()
+    if (data.success) {
+      members.value = Array.isArray(data.members) ? data.members : []
+    }
+  } catch (error) {
+    alertError('Network error', 'Network error while loading members.')
+  }
 }
 
 const fetchCharges = async () => {
@@ -161,6 +234,11 @@ const saveCharge = async () => {
     return
   }
 
+  if (form.charge_scope === 'targeted' && form.member_ids.length === 0) {
+    alertWarning('Target members required', 'Select at least one member for a targeted special charge.')
+    return
+  }
+
   form.amount = amount
   form.description = description
   saving.value = true
@@ -188,16 +266,21 @@ const saveCharge = async () => {
 
 const editCharge = (charge) => {
   editing.value = true
+  form.id = Number(charge.id)
   form.charge_year = Number(charge.charge_year)
   form.charge_month = Number(charge.charge_month)
   form.amount = Number(charge.amount || 0)
+  form.charge_scope = charge.charge_scope || 'all'
   form.description = charge.description || ''
+  form.member_ids = Array.isArray(charge.targets)
+    ? charge.targets.map((target) => Number(target.member_id))
+    : []
 }
 
 const deleteCharge = async (charge) => {
   const result = await confirmWarning({
     title: 'Delete charge?',
-    text: `${months[Number(charge.charge_month) - 1]} ${charge.charge_year} will no longer require this special charge.`,
+    text: `${charge.description || 'This charge'} for ${months[Number(charge.charge_month) - 1]} ${charge.charge_year} will be removed.`,
     confirmButtonText: 'Yes, delete it'
   })
 
@@ -208,6 +291,7 @@ const deleteCharge = async (charge) => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        id: Number(charge.id),
         charge_year: Number(charge.charge_year),
         charge_month: Number(charge.charge_month)
       })
@@ -225,8 +309,22 @@ const deleteCharge = async (charge) => {
   }
 }
 
+const targetNames = (targets = []) => {
+  if (!Array.isArray(targets) || targets.length === 0) return '-'
+  const names = targets.map((target) => target.membership_number ? `${target.name} (${target.membership_number})` : target.name)
+  if (names.length <= 3) return names.join(', ')
+  return `${names.slice(0, 3).join(', ')} +${names.length - 3} more`
+}
+
+watch(() => form.charge_scope, (scope) => {
+  if (scope === 'all') {
+    form.member_ids = []
+  }
+})
+
 onMounted(() => {
   fetchCharges()
+  fetchMembers()
 })
 </script>
 
@@ -263,6 +361,64 @@ onMounted(() => {
   display: flex;
   justify-content: flex-end;
   gap: 0.75rem;
+}
+
+.scope-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+}
+
+.scope-toggle label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid rgba(15, 118, 110, 0.16);
+  border-radius: 8px;
+  background: #fff;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.member-picker {
+  max-height: 280px;
+  margin-top: 0.75rem;
+  overflow: auto;
+  border: 1px solid rgba(15, 118, 110, 0.14);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.member-option {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.65rem;
+  align-items: flex-start;
+  padding: 0.68rem 0.8rem;
+  border-bottom: 1px solid rgba(15, 118, 110, 0.08);
+  cursor: pointer;
+}
+
+.member-option:last-child {
+  border-bottom: none;
+}
+
+.member-option strong,
+.member-option small {
+  display: block;
+}
+
+.member-option small,
+.field-help,
+.target-list {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.field-help {
+  margin-top: 0.45rem;
 }
 
 .table-toolbar {
@@ -317,6 +473,33 @@ onMounted(() => {
   margin-right: 0.25rem;
 }
 
+.scope-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 92px;
+  padding: 0.25rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 750;
+}
+
+.scope-all {
+  background: rgba(25, 135, 84, 0.12);
+  color: #126742;
+}
+
+.scope-targeted {
+  background: rgba(217, 119, 6, 0.14);
+  color: #92400e;
+}
+
+.target-list {
+  max-width: 280px;
+  margin-top: 0.25rem;
+  line-height: 1.35;
+}
+
 @media (max-width: 900px) {
   .charges-layout {
     grid-template-columns: 1fr;
@@ -325,7 +508,8 @@ onMounted(() => {
 
 @media (max-width: 600px) {
   .form-grid,
-  .table-toolbar {
+  .table-toolbar,
+  .scope-toggle {
     grid-template-columns: 1fr;
   }
 

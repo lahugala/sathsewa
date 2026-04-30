@@ -20,10 +20,25 @@ if ($member_id) {
         $stmt->execute([$member_id, $year]);
         $payments = $stmt->fetchAll(PDO::FETCH_ASSOC);
         $specialCharges = fetch_special_charges($pdo, $year);
+        $specialChargeLookup = build_special_charge_lookup($specialCharges, (int)$member_id);
+        $memberSpecialCharges = [];
+        foreach ($specialChargeLookup as $key => $charge) {
+            [$chargeYear, $chargeMonth] = array_map('intval', explode('-', $key));
+            if ((int)$chargeYear !== (int)$year) {
+                continue;
+            }
+            $memberSpecialCharges[] = [
+                'charge_year' => $chargeYear,
+                'charge_month' => $chargeMonth,
+                'amount' => round((float)$charge['amount'], 2),
+                'description' => $charge['description'] ?? '',
+                'charges' => $charge['charges'] ?? []
+            ];
+        }
         echo json_encode([
             'success' => true,
             'payments' => $payments,
-            'predefined_special_charges' => $specialCharges
+            'predefined_special_charges' => $memberSpecialCharges
         ]);
     } catch (PDOException $e) {
         echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);

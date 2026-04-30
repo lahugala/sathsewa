@@ -41,6 +41,10 @@
               <span>Dependents</span>
               <strong>{{ detail.summary.dependents_count }}</strong>
             </div>
+            <div class="summary-tile" :class="{ warning: Number(detail.summary.loans?.total_balance || 0) > 0 }">
+              <span>Loan Balance</span>
+              <strong>{{ formatCurrency(detail.summary.loans?.total_balance || 0) }}</strong>
+            </div>
           </section>
 
           <nav class="tab-bar" aria-label="Member detail sections">
@@ -177,6 +181,68 @@
             </table>
             <p v-else class="empty-state">No benefit records available.</p>
           </section>
+
+          <section v-if="activeTab === 'loans'" class="loans-panel">
+            <div v-if="detail.loans.length > 0" class="loan-list">
+              <article v-for="loan in detail.loans" :key="loan.id" class="loan-card">
+                <div class="loan-card-header">
+                  <div>
+                    <h3>{{ formatCurrency(loan.total_payable) }}</h3>
+                    <p>
+                      Issued {{ loan.issued_date || '-' }} |
+                      {{ loan.term_months }} months |
+                      {{ loan.interest_rate }}% fixed interest
+                    </p>
+                  </div>
+                  <span class="loan-status" :class="loanStatusClass(loan.status)">{{ loan.status }}</span>
+                </div>
+
+                <div class="loan-metrics">
+                  <div><span>Principal</span><strong>{{ formatCurrency(loan.principal_amount) }}</strong></div>
+                  <div><span>Interest</span><strong>{{ formatCurrency(loan.total_interest) }}</strong></div>
+                  <div><span>Installment</span><strong>{{ formatCurrency(loan.installment_amount) }}</strong></div>
+                  <div><span>Recovered</span><strong>{{ formatCurrency(loan.paid_total) }}</strong></div>
+                  <div><span>Balance</span><strong>{{ formatCurrency(loan.balance) }}</strong></div>
+                </div>
+
+                <p v-if="loan.remarks" class="loan-remarks">{{ loan.remarks }}</p>
+
+                <div class="table-scroll">
+                  <table class="detail-table loan-table responsive-card-table">
+                    <thead>
+                      <tr>
+                        <th>No</th>
+                        <th>Due Date</th>
+                        <th>Principal</th>
+                        <th>Interest</th>
+                        <th>Due</th>
+                        <th>Paid Date</th>
+                        <th>Recovered</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="installment in loan.installments" :key="installment.id">
+                        <td data-label="No">{{ installment.installment_no }}</td>
+                        <td data-label="Due Date">{{ installment.due_date || '-' }}</td>
+                        <td data-label="Principal">{{ formatCurrency(installment.principal_component) }}</td>
+                        <td data-label="Interest">{{ formatCurrency(installment.interest_component) }}</td>
+                        <td data-label="Due">{{ formatCurrency(installment.amount_due) }}</td>
+                        <td data-label="Paid Date">{{ installment.paid_date || '-' }}</td>
+                        <td data-label="Recovered">{{ formatCurrency(installment.amount_paid) }}</td>
+                        <td data-label="Status">
+                          <span class="installment-status" :class="installmentStatusClass(installment.status)">
+                            {{ installment.status }}
+                          </span>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </article>
+            </div>
+            <p v-else class="empty-state">No loan records available.</p>
+          </section>
         </template>
       </main>
     </div>
@@ -188,6 +254,7 @@ import { computed, ref, watch } from 'vue'
 import {
   CreditCard,
   Gift,
+  HandCoins,
   UserRound,
   Users,
   X
@@ -211,7 +278,8 @@ const tabs = [
   { id: 'profile', label: 'Profile', icon: UserRound },
   { id: 'dependents', label: 'Dependents', icon: Users },
   { id: 'payments', label: 'Payments', icon: CreditCard },
-  { id: 'benefits', label: 'Benefits', icon: Gift }
+  { id: 'benefits', label: 'Benefits', icon: Gift },
+  { id: 'loans', label: 'Loans', icon: HandCoins }
 ]
 
 const monthNames = [
@@ -295,6 +363,7 @@ const normalizeDetail = (data) => ({
   dependents: Array.isArray(data.dependents) ? data.dependents : [],
   payments: Array.isArray(data.payments) ? data.payments : [],
   benefits: Array.isArray(data.benefits) ? data.benefits : [],
+  loans: Array.isArray(data.loans) ? data.loans : [],
   status_history: Array.isArray(data.status_history) ? data.status_history : [],
   outstanding: data.outstanding || {
     outstanding_months: 0,
@@ -306,8 +375,45 @@ const normalizeDetail = (data) => ({
     payments_count: 0,
     benefits_count: 0,
     total_paid: 0,
-    total_benefits: 0
-  }
+    total_benefits: 0,
+    loans: {
+      loans_count: 0,
+      active_loans_count: 0,
+      total_principal: 0,
+      total_interest: 0,
+      total_payable: 0,
+      total_recovered: 0,
+      total_balance: 0
+    }
+  },
+  ...(data.summary ? {
+    summary: {
+      ...data.summary,
+      loans: {
+        loans_count: 0,
+        active_loans_count: 0,
+        total_principal: 0,
+        total_interest: 0,
+        total_payable: 0,
+        total_recovered: 0,
+        total_balance: 0,
+        ...(data.summary.loans || {})
+      }
+    }
+  } : {})
+})
+
+const loanStatusClass = (status) => ({
+  'loan-active': status === 'Active',
+  'loan-overdue': status === 'Overdue',
+  'loan-settled': status === 'Settled',
+  'loan-cancelled': status === 'Cancelled'
+})
+
+const installmentStatusClass = (status) => ({
+  'installment-paid': status === 'Paid',
+  'installment-partial': status === 'Partially Paid',
+  'installment-pending': status === 'Pending'
 })
 
 const loadDetail = async () => {
@@ -432,7 +538,7 @@ watch(
 
 .summary-strip {
   display: grid;
-  grid-template-columns: repeat(4, minmax(150px, 1fr));
+  grid-template-columns: repeat(5, minmax(140px, 1fr));
   gap: 1rem;
   margin-bottom: 1rem;
 }
@@ -579,6 +685,126 @@ watch(
   overflow: hidden;
 }
 
+.loans-panel {
+  display: grid;
+  gap: 1rem;
+}
+
+.loan-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.loan-card {
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
+}
+
+.loan-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.07);
+}
+
+.loan-card-header h3 {
+  margin: 0;
+  color: var(--primary-dark);
+  font-size: 1.15rem;
+}
+
+.loan-card-header p,
+.loan-remarks {
+  margin: 0.25rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.84rem;
+}
+
+.loan-status,
+.installment-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 92px;
+  padding: 0.25rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.loan-active {
+  background: rgba(20, 184, 166, 0.13);
+  color: var(--primary-dark);
+}
+
+.loan-overdue {
+  background: rgba(220, 53, 69, 0.13);
+  color: #b42332;
+}
+
+.loan-settled,
+.installment-paid {
+  background: rgba(25, 135, 84, 0.13);
+  color: #126742;
+}
+
+.loan-cancelled,
+.installment-pending {
+  background: rgba(100, 116, 139, 0.13);
+  color: #475467;
+}
+
+.installment-partial {
+  background: rgba(217, 119, 6, 0.14);
+  color: #92400e;
+}
+
+.loan-metrics {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(120px, 1fr));
+  gap: 0.7rem;
+  padding: 1rem;
+}
+
+.loan-metrics div {
+  padding: 0.7rem;
+  border: 1px solid rgba(20, 184, 166, 0.14);
+  border-radius: 8px;
+  background: rgba(20, 184, 166, 0.04);
+}
+
+.loan-metrics span {
+  display: block;
+  color: var(--text-muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.loan-metrics strong {
+  display: block;
+  margin-top: 0.15rem;
+  color: var(--primary-dark);
+  overflow-wrap: anywhere;
+}
+
+.loan-remarks {
+  padding: 0 1rem 1rem;
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+.loan-table {
+  min-width: 900px;
+}
+
 .history-filter {
   display: flex;
   align-items: center;
@@ -667,7 +893,8 @@ watch(
 
 @media (max-width: 900px) {
   .summary-strip,
-  .content-grid {
+  .content-grid,
+  .loan-metrics {
     grid-template-columns: 1fr;
   }
 

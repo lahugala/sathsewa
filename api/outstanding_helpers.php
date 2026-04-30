@@ -41,7 +41,7 @@ function calculate_outstanding_payments($member, $paidMonths, $asOfDate = null, 
     }
 
     $specialChargeLookup = function_exists('build_special_charge_lookup')
-        ? build_special_charge_lookup($specialCharges)
+        ? build_special_charge_lookup($specialCharges, $member['id'] ?? null)
         : [];
 
     $paidLookup = [];

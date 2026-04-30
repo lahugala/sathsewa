@@ -5,6 +5,7 @@ require_auth();
 require 'schema.php';
 require 'outstanding_helpers.php';
 require 'special_charge_helpers.php';
+require 'loan_helpers.php';
 ensure_app_schema($pdo);
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
@@ -83,12 +84,39 @@ try {
         $totalBenefits += (float)$benefit['amount'];
     }
 
+    $loans = fetch_member_loans($pdo, $memberId);
+    $loanSummary = [
+        'loans_count' => count($loans),
+        'active_loans_count' => 0,
+        'total_principal' => 0.0,
+        'total_interest' => 0.0,
+        'total_payable' => 0.0,
+        'total_recovered' => 0.0,
+        'total_balance' => 0.0
+    ];
+
+    foreach ($loans as $loan) {
+        if (in_array($loan['status'], ['Active', 'Overdue'], true)) {
+            $loanSummary['active_loans_count']++;
+        }
+        $loanSummary['total_principal'] += (float)$loan['principal_amount'];
+        $loanSummary['total_interest'] += (float)$loan['total_interest'];
+        $loanSummary['total_payable'] += (float)$loan['total_payable'];
+        $loanSummary['total_recovered'] += (float)$loan['paid_total'];
+        $loanSummary['total_balance'] += (float)$loan['balance'];
+    }
+
+    foreach (['total_principal', 'total_interest', 'total_payable', 'total_recovered', 'total_balance'] as $key) {
+        $loanSummary[$key] = round($loanSummary[$key], 2);
+    }
+
     echo json_encode([
         'success' => true,
         'member' => $member,
         'dependents' => $dependents,
         'payments' => $payments,
         'benefits' => $benefits,
+        'loans' => $loans,
         'status_history' => $statusHistory,
         'outstanding' => calculate_outstanding_payments($member, $paidMonths, null, 100.00, $specialCharges),
         'summary' => [
@@ -97,6 +125,7 @@ try {
             'benefits_count' => count($benefits),
             'total_paid' => $totalPaid,
             'total_benefits' => $totalBenefits,
+            'loans' => $loanSummary,
             'status_changes_count' => count($statusHistory)
         ]
     ]);

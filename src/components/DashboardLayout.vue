@@ -2,9 +2,15 @@
   <div class="dashboard-container">
     <!-- Navbar -->
     <header class="dashboard-navbar glass-panel">
-      <div class="navbar-brand">
-        <img src="/logo.png" alt="Sathsewa Welfare Society logo" class="navbar-logo">
-        <h2>Sathsewa Welfare Society</h2>
+      <div class="navbar-left">
+        <button class="sidebar-toggle" type="button" :aria-label="sidebarToggleLabel" @click="toggleSidebar">
+          <PanelLeftOpen v-if="sidebarCollapsed && !mobileSidebarOpen" :size="21" />
+          <PanelLeftClose v-else :size="21" />
+        </button>
+        <div class="navbar-brand">
+          <img src="/logo.png" alt="Sathsewa Welfare Society logo" class="navbar-logo">
+          <h2>Sathsewa Welfare Society</h2>
+        </div>
       </div>
       <div class="navbar-actions">
         <button @click="logout" class="btn btn-outline btn-sm">Logout</button>
@@ -12,38 +18,41 @@
     </header>
 
     <div class="dashboard-body">
+      <div v-if="mobileSidebarOpen" class="sidebar-backdrop" @click="closeMobileSidebar"></div>
+
       <!-- Sidebar -->
-      <aside class="dashboard-sidebar glass-panel">
+      <aside class="dashboard-sidebar glass-panel" :class="{ collapsed: sidebarCollapsed, 'mobile-open': mobileSidebarOpen }">
         <nav class="sidebar-nav">
-          <router-link to="/dashboard" class="nav-link" active-class="active">
+          <router-link to="/dashboard" class="nav-link" active-class="active" title="Dashboard" @click="closeMobileSidebar">
             <span class="nav-icon icon-dashboard">
               <LayoutDashboard :size="17" />
             </span>
-            Dashboard
+            <span class="nav-label">Dashboard</span>
           </router-link>
-          <router-link to="/members" class="nav-link" active-class="active">
+          <router-link to="/members" class="nav-link" active-class="active" title="Members" @click="closeMobileSidebar">
             <span class="nav-icon icon-members">
               <Users :size="17" />
             </span>
-            Members
+            <span class="nav-label">Members</span>
           </router-link>
-          <router-link to="/charges" class="nav-link" active-class="active">
+          <router-link to="/charges" class="nav-link" active-class="active" title="Special Charges" @click="closeMobileSidebar">
             <span class="nav-icon icon-charges">
               <ReceiptText :size="17" />
             </span>
-            Special Charges
+            <span class="nav-label">Special Charges</span>
           </router-link>
 
           <button
             class="nav-link nav-link-toggle"
             :class="{ active: isReportsRoute }"
             type="button"
+            title="Reports"
             @click="toggleReports"
           >
             <span class="nav-icon icon-reports">
               <FileBarChart2 :size="17" />
             </span>
-            Reports
+            <span class="nav-label">Reports</span>
             <span class="caret">
               <ChevronDown v-if="reportsOpen" :size="16" />
               <ChevronRight v-else :size="16" />
@@ -51,13 +60,13 @@
           </button>
 
           <div v-show="reportsOpen" class="sub-nav">
-            <router-link to="/reports/members" class="sub-nav-link" active-class="active-sub">
+            <router-link to="/reports/members" class="sub-nav-link" active-class="active-sub" @click="closeMobileSidebar">
               <UserSquare2 :size="14" />
-              Member Report
+              <span class="nav-label">Member Report</span>
             </router-link>
-            <router-link to="/reports/financial" class="sub-nav-link" active-class="active-sub">
+            <router-link to="/reports/financial" class="sub-nav-link" active-class="active-sub" @click="closeMobileSidebar">
               <Wallet2 :size="14" />
-              Financial Report
+              <span class="nav-label">Financial Report</span>
             </router-link>
           </div>
         </nav>
@@ -74,7 +83,7 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   LayoutDashboard,
@@ -84,15 +93,25 @@ import {
   ChevronDown,
   ChevronRight,
   UserSquare2,
-  Wallet2
+  Wallet2,
+  PanelLeftClose,
+  PanelLeftOpen
 } from 'lucide-vue-next'
 import { apiFetch } from '../utils/api'
 
 const router = useRouter()
 const route = useRoute()
 const reportsOpen = ref(false)
+const sidebarCollapsed = ref(false)
+const mobileSidebarOpen = ref(false)
 
 const isReportsRoute = computed(() => route.path.startsWith('/reports'))
+const sidebarToggleLabel = computed(() => {
+  if (mobileSidebarOpen.value) return 'Close side menu'
+  return sidebarCollapsed.value ? 'Expand side menu' : 'Collapse side menu'
+})
+
+const isMobileViewport = () => typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches
 
 watch(
   () => route.path,
@@ -100,13 +119,35 @@ watch(
     if (path.startsWith('/reports')) {
       reportsOpen.value = true
     }
+    mobileSidebarOpen.value = false
   },
   { immediate: true }
 )
 
 const toggleReports = () => {
+  if (sidebarCollapsed.value && !isMobileViewport()) {
+    sidebarCollapsed.value = false
+  }
   reportsOpen.value = !reportsOpen.value
 }
+
+const toggleSidebar = () => {
+  if (isMobileViewport()) {
+    mobileSidebarOpen.value = !mobileSidebarOpen.value
+    return
+  }
+
+  sidebarCollapsed.value = !sidebarCollapsed.value
+  localStorage.setItem('sathsewa-sidebar-collapsed', sidebarCollapsed.value ? '1' : '0')
+}
+
+const closeMobileSidebar = () => {
+  mobileSidebarOpen.value = false
+}
+
+onMounted(() => {
+  sidebarCollapsed.value = localStorage.getItem('sathsewa-sidebar-collapsed') === '1'
+})
 
 const logout = async () => {
   try {
@@ -141,6 +182,38 @@ const logout = async () => {
   top: 0;
   z-index: 10;
   box-shadow: 0 12px 34px rgba(15, 23, 42, 0.2);
+}
+
+.navbar-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.9rem;
+  min-width: 0;
+}
+
+.sidebar-toggle {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.sidebar-toggle:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.45);
+}
+
+.sidebar-toggle:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.16);
 }
 
 .navbar-brand h2 {
@@ -179,10 +252,12 @@ const logout = async () => {
   display: flex;
   flex: 1;
   overflow: hidden;
+  position: relative;
 }
 
 .dashboard-sidebar {
   width: clamp(220px, 18vw, 280px);
+  flex: 0 0 clamp(220px, 18vw, 280px);
   border-radius: 0;
   border-top: none;
   border-bottom: none;
@@ -192,6 +267,14 @@ const logout = async () => {
   flex-direction: column;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(243, 247, 246, 0.9) 100%);
+  transition: width 0.22s ease, flex-basis 0.22s ease, padding 0.22s ease, transform 0.22s ease;
+  overflow-x: hidden;
+}
+
+.dashboard-sidebar.collapsed {
+  width: 76px;
+  flex-basis: 76px;
+  padding-inline: 0.75rem;
 }
 
 .sidebar-nav {
@@ -210,6 +293,7 @@ const logout = async () => {
   transition: var(--transition);
   font-weight: 650;
   border: 1px solid transparent;
+  min-width: 0;
 }
 
 .nav-link-toggle {
@@ -234,6 +318,7 @@ const logout = async () => {
 .nav-icon {
   width: 30px;
   height: 30px;
+  flex: 0 0 30px;
   border-radius: 8px;
   display: inline-flex;
   align-items: center;
@@ -241,6 +326,28 @@ const logout = async () => {
   margin-right: 0.75rem;
   color: white;
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
+}
+
+.nav-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-sidebar.collapsed .nav-link {
+  justify-content: center;
+  padding-inline: 0.55rem;
+}
+
+.dashboard-sidebar.collapsed .nav-icon {
+  margin-right: 0;
+}
+
+.dashboard-sidebar.collapsed .nav-label,
+.dashboard-sidebar.collapsed .caret,
+.dashboard-sidebar.collapsed .sub-nav {
+  display: none;
 }
 
 .icon-dashboard {
@@ -330,20 +437,72 @@ const logout = async () => {
     font-size: 1.05rem;
   }
 
+  .navbar-left {
+    gap: 0.65rem;
+  }
+
   .navbar-logo {
     width: 40px;
     height: 40px;
   }
 
   .dashboard-body {
-    flex-direction: column;
+    display: block;
+    overflow: visible;
   }
 
   .dashboard-sidebar {
-    width: 100%;
+    position: fixed;
+    top: 73px;
+    left: 0;
+    bottom: 0;
+    z-index: 30;
+    width: min(82vw, 310px);
+    flex-basis: auto;
     border-right: none;
-    border-bottom: 1px solid var(--surface-border);
+    border-bottom: none;
     padding: 1rem;
+    transform: translateX(-110%);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .dashboard-sidebar.mobile-open {
+    transform: translateX(0);
+  }
+
+  .dashboard-sidebar.collapsed {
+    width: min(82vw, 310px);
+    flex-basis: auto;
+    padding: 1rem;
+  }
+
+  .dashboard-sidebar.collapsed .nav-link {
+    justify-content: flex-start;
+    padding: 0.75rem 1rem;
+  }
+
+  .dashboard-sidebar.collapsed .nav-icon {
+    margin-right: 0.75rem;
+  }
+
+  .dashboard-sidebar.collapsed .nav-label,
+  .dashboard-sidebar.collapsed .caret {
+    display: inline-flex;
+  }
+
+  .dashboard-sidebar.collapsed .sub-nav {
+    display: flex;
+  }
+
+  .sidebar-backdrop {
+    position: fixed;
+    top: 73px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 25;
+    background: rgba(15, 23, 42, 0.42);
+    backdrop-filter: blur(2px);
   }
 
   .dashboard-main {
